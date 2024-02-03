@@ -1,4 +1,4 @@
-# DynamicLOD-ResetXPDR
+# DynamicLOD_ResetEdition
 
 Based on muumimorko's idea and code in MSFS_AdaptiveLOD, as further developed by Fragtality in DynamicLOD.<br/><br/>
 This utility builds upon the functionality provided in DynamicLOD, which aims to improve MSFS performance and smoothness by dynamically changing the TLOD (and OLOD) based on the current AGL, and provides additonal features such as:<br/>
@@ -22,9 +22,9 @@ The Installer will install the following Software:
 
 <br/>
 
-[Download here](https://github.com/ResetXPDR/DynamicLOD-ResetXPDR/releases/latest)
+[Download here](https://github.com/ResetXPDR/DynamicLOD_ResetEdition/releases/latest)
 
-(Under Assests, the DynamicLOD-ResetXPDR-Installer-vXYZ.exe File)
+(Under Assests, the DynamicLOD_ResetEdition-Installer-vXYZ.exe File)
 
 <br/><br/>
 
@@ -41,9 +41,9 @@ Some Notes:
 - For Auto-Start either your FSUIPC7.ini or EXE.xml (MSFS) is modified. The Installer does not create a Backup.
 - It may be blocked by Windows Security or your AV-Scanner, try if unblocking and/or setting an Exception helps (for the whole Folder)
 - The Installation-Location is fixed to %appdata%\DynamicLOD (your Users AppData\Roaming Folder) and can not be changed.
-  - Binary in %appdata%\DynamicLOD-ResetXPDR\bin
-  - Logs in %appdata%\DynamicLOD-ResetXPDR\log
-  - Config: %appdata%\DynamicLOD-ResetXPDR\DynamicLOD-ResetXPDR.config
+  - Binary in %appdata%\DynamicLOD_ResetEdition\bin
+  - Logs in %appdata%\DynamicLOD_ResetEdition\log
+  - Config: %appdata%\DynamicLOD_ResetEdition\DynamicLOD_ResetEdition.config
 
 <br/><br/>
 
