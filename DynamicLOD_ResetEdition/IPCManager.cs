@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public static class IPCManager
     {
@@ -13,11 +13,17 @@ namespace DynamicLOD
         public static bool WaitForSimulator(ServiceModel model)
         {
             bool simRunning = IsSimRunning();
+            bool logEntryMade = false;
+
             if (!simRunning && model.WaitForConnect)
             {
                 do
                 {
-                    Logger.Log(LogLevel.Information, "IPCManager:WaitForSimulator", $"Simulator not started - waiting {waitDuration / 1000}s for Sim");
+                    if (!logEntryMade)
+                    {
+                        Logger.Log(LogLevel.Information, "IPCManager:WaitForSimulator", $"Simulator not started - waiting {waitDuration / 1000}s between Retries");
+                        logEntryMade = true;
+                    }
                     Thread.Sleep(waitDuration);
                 }
                 while (!IsSimRunning() && !model.CancellationRequested);
@@ -53,17 +59,20 @@ namespace DynamicLOD
             if (!IsSimRunning())
                 return false;
 
-            Thread.Sleep(waitDuration / 2);
-
             SimConnect = new MobiSimConnect();
             bool mobiRequested = SimConnect.Connect();
+            bool logEntryMade = false;
 
             if (!SimConnect.IsConnected)
             {
                 do
                 {
-                    Logger.Log(LogLevel.Information, "IPCManager:WaitForConnection", $"Connection not established - waiting {waitDuration / 1000}s for Retry");
-                    Thread.Sleep(waitDuration);
+                    if (!logEntryMade)
+                    {
+                        Logger.Log(LogLevel.Information, "IPCManager:WaitForConnection", $"Connection not established - waiting {waitDuration / 1000}s between Retries");
+                        logEntryMade = true;
+                    }
+                    Thread.Sleep(waitDuration / 2);
                     if (!mobiRequested)
                         mobiRequested = SimConnect.Connect();
                 }
@@ -85,9 +94,14 @@ namespace DynamicLOD
             SimConnect.SubscribeSimVar("PLANE IN PARKING STATE", "Bool");
             Thread.Sleep(250);
             bool isReady = IsCamReady();
+            bool logEntryMade = false;
             while (IsSimRunning() && !isReady && !model.CancellationRequested)
             {
-                Logger.Log(LogLevel.Information, "IPCManager:WaitForSessionReady", $"Session not ready - waiting {waitDuration / 1000}s for Retry");
+                if (!logEntryMade)
+                {
+                    Logger.Log(LogLevel.Information, "IPCManager:WaitForSessionReady", $"Session not ready - waiting {waitDuration / 1000}s between Retries");
+                    logEntryMade = true;
+                }
                 Thread.Sleep(waitDuration);
                 isReady = IsCamReady();
             }

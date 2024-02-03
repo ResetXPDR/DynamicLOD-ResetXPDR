@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using H.NotifyIcon;
 using System.Windows;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public partial class NotifyIconViewModel : ObservableObject
     {

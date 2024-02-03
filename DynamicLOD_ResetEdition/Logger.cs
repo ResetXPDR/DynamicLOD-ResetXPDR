@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public enum LogLevel
     {

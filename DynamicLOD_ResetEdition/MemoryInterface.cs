@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public static class MemoryInterface
     {

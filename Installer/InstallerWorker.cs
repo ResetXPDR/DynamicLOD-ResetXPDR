@@ -34,7 +34,7 @@ namespace Installer
             
             messageList.Enqueue("\nDone.");
             if (!HasError)
-                messageList.Enqueue($"DynamicLOD was installed to {Parameters.appDir}");
+                messageList.Enqueue($"DynamicLOD_ResetEdition was installed to {Parameters.appDir}");
             IsRunning = false;
         }
 
@@ -117,7 +117,7 @@ namespace Installer
 
             if (!Directory.Exists(Parameters.appDir))
             {
-                messageList.Enqueue("Installing DynamicLOD ...");
+                messageList.Enqueue("Installing DynamicLOD_ResetEdition ...");
                 messageList.Enqueue("Extracting Application ...");
                 if (!InstallerFunctions.ExtractZip())
                 {
@@ -144,7 +144,7 @@ namespace Installer
             if (!File.Exists(Parameters.confFile))
             {
                 messageList.Enqueue("Creating Config File ...");
-                using (var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("Installer.DynamicLOD.config"))
+                using (var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("Installer.DynamicLOD_ResetEdition.config"))
                 {
                     using (var file = new FileStream(Parameters.confFile, FileMode.Create, FileAccess.Write))
                     {

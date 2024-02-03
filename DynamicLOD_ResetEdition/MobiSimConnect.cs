@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public class MobiSimConnect : IDisposable
     {
@@ -14,7 +14,7 @@ namespace DynamicLOD
         public const uint MOBIFLIGHT_MESSAGE_SIZE = 1024;
 
         public const uint WM_PILOTSDECK_SIMCONNECT = 0x1989;
-        public const string CLIENT_NAME = "DynamicLOD";
+        public const string CLIENT_NAME = "DynamicLOD_ResetEdition";
         public const string PILOTSDECK_CLIENT_DATA_NAME_SIMVAR = $"{CLIENT_NAME}.LVars";
         public const string PILOTSDECK_CLIENT_DATA_NAME_COMMAND = $"{CLIENT_NAME}.Command";
         public const string PILOTSDECK_CLIENT_DATA_NAME_RESPONSE = $"{CLIENT_NAME}.Response";
@@ -454,15 +454,6 @@ namespace DynamicLOD
         {
             SendClientWasmCmd($"MF.SimVars.Set.{code}");
             SendClientWasmDummyCmd();
-        }
-
-        public int AltAboveGround(bool onGround)
-        {
-            int alt = (int)ReadSimVar("PLANE ALT ABOVE GROUND", "feet");
-            if (alt == 0 && onGround)
-                alt = (int)ReadSimVar("PLANE ALT ABOVE GROUND MINUS CG", "feet");
-
-            return alt;
         }
     }
 }

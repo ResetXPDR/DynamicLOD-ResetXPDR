@@ -6,8 +6,8 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Style", "IDE0044:Modifizierer \"readonly\" hinzufügen")]
-[assembly: SuppressMessage("Performance", "CA1822:Member als statisch markieren", Justification = "<Ausstehend>", Scope = "member", Target = "~M:DynamicLOD.MobiSimConnect.SimConnect_OnException(Microsoft.FlightSimulator.SimConnect.SimConnect,Microsoft.FlightSimulator.SimConnect.SIMCONNECT_RECV_EXCEPTION)")]
+[assembly: SuppressMessage("Performance", "CA1822:Member als statisch markieren", Justification = "<Ausstehend>", Scope = "member", Target = "~M:DynamicLOD_ResetEdition.MobiSimConnect.SimConnect_OnException(Microsoft.FlightSimulator.SimConnect.SimConnect,Microsoft.FlightSimulator.SimConnect.SIMCONNECT_RECV_EXCEPTION)")]
 [assembly: SuppressMessage("Interoperability", "SYSLIB1054:Verwenden Sie \\\"LibraryImportAttribute\\\" anstelle von \\\"DllImportAttribute\\\", um P/Invoke-Marshallingcode zur Kompilierzeit zu generieren.")]
-[assembly: SuppressMessage("Performance", "CA1822:Member als statisch markieren", Justification = "<Ausstehend>", Scope = "member", Target = "~M:DynamicLOD.NotifyIconViewModel.ExitApplication")]
+[assembly: SuppressMessage("Performance", "CA1822:Member als statisch markieren", Justification = "<Ausstehend>", Scope = "member", Target = "~M:DynamicLOD_ResetEdition.NotifyIconViewModel.ExitApplication")]
 [assembly: SuppressMessage("Style", "IDE1006:Benennungsstile")]
 [assembly: SuppressMessage("Usage", "CA2211:Nicht konstante Felder dürfen nicht sichtbar sein")]

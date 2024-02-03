@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public class RealInvariantFormat : IFormatProvider
     {

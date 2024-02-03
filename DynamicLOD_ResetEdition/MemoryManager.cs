@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public class MemoryManager
     {
@@ -10,8 +10,9 @@ namespace DynamicLOD
         private long addrOLOD;
         private long addrTLOD_VR;
         private long addrOLOD_VR;
-        private long addrVrMode1;
-        private long addrVrMode2;
+        private long addrCloudQ;
+        private long addrCloudQ_VR;
+        private long addrVrMode;
 
         public MemoryManager(ServiceModel model)
         {
@@ -31,12 +32,12 @@ namespace DynamicLOD
                 Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address OLOD VR: 0x{addrOLOD_VR:X} / {addrOLOD_VR}");
                 addrOLOD = addrTLOD + Model.OffsetPointerOlod;
                 Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address OLOD: 0x{addrOLOD:X} / {addrOLOD}");
-
-                moduleBase = MemoryInterface.GetModuleAddress(Model.SimBinary);
-                addrVrMode1 = moduleBase + Model.OffsetVr1;
-                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address VrMode1: 0x{addrVrMode1:X} / {addrVrMode1}");
-                addrVrMode2 = moduleBase + Model.OffsetVr2;
-                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address VrMode2: 0x{addrVrMode2:X} / {addrVrMode2}");
+                addrCloudQ = addrTLOD + Model.OffsetPointerCloudQ;
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address CloudQ: 0x{addrCloudQ:X} / {addrCloudQ}");
+                addrCloudQ_VR = addrCloudQ + Convert.ToInt64("0x108", 16);
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address CloudQ VR: 0x{addrCloudQ_VR:X} / {addrCloudQ_VR}");
+                addrVrMode = addrTLOD - 0x1C;
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address VrMode1: 0x{addrVrMode:X} / {addrVrMode}");
             }
             catch (Exception ex)
             {
@@ -48,7 +49,7 @@ namespace DynamicLOD
         {
             try
             {
-                return MemoryInterface.ReadMemory<int>(addrVrMode1) == 1 && MemoryInterface.ReadMemory<int>(addrVrMode2) == 1;
+                return MemoryInterface.ReadMemory<int>(addrVrMode) == 1; 
             }
             catch (Exception ex)
             {
@@ -72,13 +73,6 @@ namespace DynamicLOD
             return 0.0f;
         }
 
-        public float GetTLOD()
-        {
-            if (IsVrModeActive())
-                return GetTLOD_VR();
-            else
-                return GetTLOD_PC();
-        }
         public float GetTLOD_VR()
         {
             try
@@ -107,15 +101,7 @@ namespace DynamicLOD
             return 0.0f;
         }
 
-        public float GetOLOD()
-        {
-            if (IsVrModeActive())
-                return GetOLOD_VR();
-            else
-                return GetOLOD_PC();
-        }
-
-        public float GetOLOD_VR()
+         public float GetOLOD_VR()
         {
             try
             {
@@ -129,35 +115,107 @@ namespace DynamicLOD
             return 0.0f;
         }
 
-        public void SetTLOD(float value)
+        public int GetCloudQ()
         {
             try
             {
-                if (IsVrModeActive())
-                    MemoryInterface.WriteMemory<float>(addrTLOD_VR, value / 100.0f);
-                else
-                    MemoryInterface.WriteMemory<float>(addrTLOD, value / 100.0f);
-                
+                return MemoryInterface.ReadMemory<int>(addrCloudQ);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "MemoryManager:GetCloudQ", $"Exception {ex}: {ex.Message}");
+            }
+
+            return -1;
+        }
+        public int GetCloudQ_VR()
+        {
+            try
+            {
+                return MemoryInterface.ReadMemory<int>(addrCloudQ_VR);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "MemoryManager:GetCloudQ VR", $"Exception {ex}: {ex.Message}");
+            }
+
+            return -1;
+        }
+        public void SetTLOD(float value)
+        {
+            SetTLOD_PC(value);
+            SetTLOD_VR(value);
+        }
+        public void SetTLOD_PC(float value)
+        {
+            try
+            {
+                MemoryInterface.WriteMemory<float>(addrTLOD, value / 100.0f);
             }
             catch (Exception ex)
             {
                 Logger.Log(LogLevel.Error, "MemoryManager:SetTLOD", $"Exception {ex}: {ex.Message}");
             }
         }
-
-        public void SetOLOD(float value)
+        public void SetTLOD_VR(float value)
         {
             try
             {
-                if (IsVrModeActive())
-                    MemoryInterface.WriteMemory<float>(addrOLOD_VR, value / 100.0f);
-                else
-                    MemoryInterface.WriteMemory<float>(addrOLOD, value / 100.0f);
+                MemoryInterface.WriteMemory<float>(addrTLOD_VR, value / 100.0f);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "MemoryManager:SetTLOD VR", $"Exception {ex}: {ex.Message}");
+            }
+        }
+        public void SetOLOD(float value)
+        {
+            SetOLOD_PC(value);
+            SetOLOD_VR(value);
+        }
+        public void SetOLOD_PC(float value)
+        {
+            try
+            {
+                MemoryInterface.WriteMemory<float>(addrOLOD, value / 100.0f);
                 
             }
             catch (Exception ex)
             {
                 Logger.Log(LogLevel.Error, "MemoryManager:SetOLOD", $"Exception {ex}: {ex.Message}");
+            }
+        }
+        public void SetOLOD_VR(float value)
+        {
+            try
+            {
+                MemoryInterface.WriteMemory<float>(addrOLOD_VR, value / 100.0f);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "MemoryManager:SetOLOD VR", $"Exception {ex}: {ex.Message}");
+            }
+        }
+        public void SetCloudQ(int value)
+        {
+            try
+            {
+                MemoryInterface.WriteMemory<int>(addrCloudQ, value);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "MemoryManager:SetCloudQ", $"Exception {ex}: {ex.Message}");
+            }
+        }
+        public void SetCloudQ_VR(int value)
+        {
+            try
+            {
+                MemoryInterface.WriteMemory<int>(addrCloudQ_VR, value);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "MemoryManager:SetCloudQ VR", $"Exception {ex}: {ex.Message}");
             }
         }
     }

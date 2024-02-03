@@ -7,12 +7,12 @@ namespace Installer
     {
         public static readonly string fileName = "AppPackage.zip";
 
-        public static readonly string appName = "DynamicLOD";
+        public static readonly string appName = "DynamicLOD_ResetEdition";
         public static readonly string appBinary = $"{appName}.exe";
-        public static readonly string appDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD";
+        public static readonly string appDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD_ResetEdition";
         public static readonly string binDir = appDir + @"\bin";
-        public static readonly string binPath = binDir + @"\DynamicLOD.exe";
-        public static readonly string confFile = appDir + @"\DynamicLOD.config";
+        public static readonly string binPath = binDir + @"\DynamicLOD_ResetEdition.exe";
+        public static readonly string confFile = appDir + @"\DynamicLOD_ResetEdition.config";
 
         public static readonly Regex netDesktop = new Regex(@"Microsoft.WindowsDesktop.App ((\d+)\.(\d+)\.(\d+)).+", RegexOptions.Compiled);
 

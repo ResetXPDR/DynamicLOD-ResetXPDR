@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -12,7 +14,7 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public partial class MainWindow : Window
     {
@@ -31,7 +33,7 @@ namespace DynamicLOD
             
             string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             assemblyVersion = assemblyVersion[0..assemblyVersion.LastIndexOf('.')];
-            Title += " (" + assemblyVersion + ")";
+            Title += " (" + assemblyVersion + (serviceModel.TestVersion ? "-test" : "")+ ")";
 
             FillIndices(dgTlodPairs);
             FillIndices(dgOlodPairs);
@@ -49,19 +51,23 @@ namespace DynamicLOD
         protected void LoadSettings()
         {
             chkOpenWindow.IsChecked = serviceModel.OpenWindow;
+            chkCruiseLODUpdates.IsChecked = serviceModel.CruiseLODUpdates;
+            chkLodStepMax.IsChecked = serviceModel.LodStepMax;
             chkUseTargetFPS.IsChecked = serviceModel.UseTargetFPS;
             cbProfile.SelectedIndex = serviceModel.SelectedProfile;
             dgTlodPairs.ItemsSource = serviceModel.PairsTLOD[serviceModel.SelectedProfile].ToDictionary(x => x.Item1, x => x.Item2);
             dgOlodPairs.ItemsSource = serviceModel.PairsOLOD[serviceModel.SelectedProfile].ToDictionary(x => x.Item1, x => x.Item2);
-            chkProfileIsVr.IsChecked = serviceModel.IsVrProfile;
             txtTargetFPS.Text = Convert.ToString(serviceModel.TargetFPS, CultureInfo.CurrentUICulture);
             txtDecreaseTlod.Text = Convert.ToString(serviceModel.DecreaseTLOD, CultureInfo.CurrentUICulture);
             txtDecreaseOlod.Text = Convert.ToString(serviceModel.DecreaseOLOD, CultureInfo.CurrentUICulture);
-            txtMinLod.Text = Convert.ToString(serviceModel.MinLOD, CultureInfo.CurrentUICulture);
+            txtMinTLod.Text = Convert.ToString(serviceModel.MinTLOD, CultureInfo.CurrentUICulture);
+            txtMinOLod.Text = Convert.ToString(serviceModel.MinOLOD, CultureInfo.CurrentUICulture);
             txtConstraintTicks.Text = Convert.ToString(serviceModel.ConstraintTicks, CultureInfo.CurrentUICulture);
-            txtTargetFpsIndex.Text = Convert.ToString(serviceModel.TargetFPSIndex, CultureInfo.CurrentUICulture);
-            txtTlodDefault.Text = Convert.ToString(serviceModel.DefaultTLOD, CultureInfo.CurrentUICulture);
-            txtOlodDefault.Text = Convert.ToString(serviceModel.DefaultOLOD, CultureInfo.CurrentUICulture);
+            txtConstraintDelayTicks.Text = Convert.ToString(serviceModel.ConstraintDelayTicks, CultureInfo.CurrentUICulture);
+            chkDecCloudQ.IsChecked = serviceModel.DecCloudQ;
+            txtCloudRecoveryFPS.Text = Convert.ToString(serviceModel.CloudRecoveryFPS, CultureInfo.CurrentUICulture);
+            txtLodStepMaxInc.Text = Convert.ToString(serviceModel.LodStepMaxInc, CultureInfo.CurrentUICulture);
+            txtLodStepMaxDec.Text = Convert.ToString(serviceModel.LodStepMaxDec, CultureInfo.CurrentUICulture);
         }
 
         protected static void FillIndices(DataGrid dataGrid)
@@ -101,30 +107,40 @@ namespace DynamicLOD
                 lblConnStatSession.Foreground = new SolidColorBrush(Colors.Red);
         }
 
+        protected string CloudQualityLabel(int CloudQuality)
+        {
+            if (CloudQuality == 0) return "Low";
+            else if (CloudQuality == 1) return "Medium";
+            else if (CloudQuality == 2) return "High";
+            else if (CloudQuality == 3) return "Ultra";
+            else return "n/a";
+        }
+
         protected void UpdateLiveValues()
         {
             if (IPCManager.SimConnect != null && IPCManager.SimConnect.IsConnected)
                 lblSimFPS.Content = IPCManager.SimConnect.GetAverageFPS().ToString("F2");
             else
-                lblSimFPS.Content = "0";
+                lblSimFPS.Content = "n/a";
 
             if (serviceModel.MemoryAccess != null)
             {
-                if (!serviceModel.IsVrModeActive)
+                lblSimLODs.Content = serviceModel.MemoryAccess.GetTLOD_PC().ToString("F0") + " / " + serviceModel.MemoryAccess.GetOLOD_PC().ToString("F0");
+                lblSimCloudQs.Content = CloudQualityLabel(serviceModel.MemoryAccess.GetCloudQ()) + " / " + CloudQualityLabel(serviceModel.MemoryAccess.GetCloudQ_VR());
+                if (serviceModel.MemoryAccess.IsVrModeActive())
                 {
-                    lblSimTLOD.Content = "<" + serviceModel.MemoryAccess.GetTLOD_PC().ToString("F0") + "> / " + serviceModel.MemoryAccess.GetTLOD_VR().ToString("F0");
-                    lblSimOLOD.Content = "<" + serviceModel.MemoryAccess.GetOLOD_PC().ToString("F0") + "> / " + serviceModel.MemoryAccess.GetOLOD_VR().ToString("F0");
+                    lblIsVR.Content = "VR Mode active";
                 }
                 else
                 {
-                    lblSimTLOD.Content = serviceModel.MemoryAccess.GetTLOD_PC().ToString("F0") + " / <" + serviceModel.MemoryAccess.GetTLOD_VR().ToString("F0") + ">";
-                    lblSimOLOD.Content = serviceModel.MemoryAccess.GetOLOD_PC().ToString("F0") + " / <" + serviceModel.MemoryAccess.GetOLOD_VR().ToString("F0") + ">";
+                    lblIsVR.Content = "PC Mode active";
                 }
+
             }
             else
             {
-                lblSimTLOD.Content = "0 / 0";
-                lblSimOLOD.Content = "0 / 0";
+                lblSimLODs.Content = "n/a";
+                lblSimCloudQs.Content = "n/a";
             }
 
             if (serviceModel.UseTargetFPS && serviceModel.IsSessionRunning)
@@ -141,13 +157,14 @@ namespace DynamicLOD
 
             if (serviceModel.fpsMode)
             {
-                lblSimTLOD.Foreground = new SolidColorBrush(Colors.Red);
-                lblSimOLOD.Foreground = new SolidColorBrush(Colors.Red);
+                lblSimLODs.Foreground = new SolidColorBrush(Colors.Red);
+                if (serviceModel.DecCloudQ) lblSimCloudQs.Foreground = new SolidColorBrush(Colors.Red);
+                else lblSimCloudQs.Foreground = new SolidColorBrush(Colors.Black);
             }
             else
             {
-                lblSimTLOD.Foreground = new SolidColorBrush(Colors.Black);
-                lblSimOLOD.Foreground = new SolidColorBrush(Colors.Black);
+                lblSimLODs.Foreground = new SolidColorBrush(Colors.Black);
+                lblSimCloudQs.Foreground = new SolidColorBrush(Colors.Black);
             }
         }
 
@@ -156,11 +173,7 @@ namespace DynamicLOD
             if (IPCManager.SimConnect != null && IPCManager.SimConnect.IsConnected)
             {
                 var simConnect = IPCManager.SimConnect;
-                if (!serviceModel.OnGround)
-                    lblPlaneAGL.Content = simConnect.AltAboveGround(false).ToString("F0");
-                else
-                    lblPlaneAGL.Content = "0";
-
+                lblPlaneAGL.Content = simConnect.ReadSimVar("PLANE ALT ABOVE GROUND", "feet").ToString("F0");
                 lblPlaneVS.Content = (simConnect.ReadSimVar("VERTICAL SPEED", "feet per second") * 60.0f).ToString("F0");
                 if (serviceModel.OnGround)
                     lblVSTrend.Content = "Ground";
@@ -173,9 +186,9 @@ namespace DynamicLOD
             }
             else
             {
-                lblPlaneAGL.Content = "0";
-                lblPlaneVS.Content = "0";
-                lblVSTrend.Content = "0";
+                lblPlaneAGL.Content = "n/a";
+                lblPlaneVS.Content = "n/a";
+                lblVSTrend.Content = "n/a";
             }
         }
 
@@ -187,12 +200,6 @@ namespace DynamicLOD
 
         protected void OnTick(object sender, EventArgs e)
         {
-            if (serviceModel.ProfileSelectionChanged)
-            {
-                LoadSettings();
-                serviceModel.ProfileSelectionChanged = false;
-            }
-            
             UpdateStatus();
             UpdateLiveValues();
             UpdateAircraftValues();
@@ -215,6 +222,8 @@ namespace DynamicLOD
             else
             {
                 LoadSettings();
+                chkLodStepMax_WindowVisibility();
+                chkCloudRecoveryFPS_WindowVisibility();
                 timer.Start();
             }
         }
@@ -237,6 +246,24 @@ namespace DynamicLOD
             LoadSettings();
         }
 
+        private void chkCruiseLODUpdates_Click(object sender, RoutedEventArgs e)
+        {
+            serviceModel.SetSetting("CruiseLODUpdates", chkCruiseLODUpdates.IsChecked.ToString().ToLower());
+            LoadSettings();
+        }
+        private void chkDecCloudQ_Click(object sender, RoutedEventArgs e)
+        {
+            serviceModel.SetSetting("DecCloudQ", chkDecCloudQ.IsChecked.ToString().ToLower());
+            LoadSettings();
+            chkCloudRecoveryFPS_WindowVisibility();
+
+        }
+        private void chkLodStepMax_Click(object sender, RoutedEventArgs e)
+        {
+            serviceModel.SetSetting("LodStepMax", chkLodStepMax.IsChecked.ToString().ToLower());
+            LoadSettings();
+            chkLodStepMax_WindowVisibility();
+        }
         private void TextBox_LostFocus(object sender, RoutedEventArgs e)
         {
             TextBox_SetSetting(sender as TextBox);
@@ -258,6 +285,7 @@ namespace DynamicLOD
             string key;
             bool intValue = false;
             bool notNegative = true;
+            bool zeroAllowed = false;
             switch (sender.Name)
             {
                 case "txtTargetFPS":
@@ -274,18 +302,29 @@ namespace DynamicLOD
                     key = "constraintTicks";
                     intValue = true;
                     break;
-                case "txtTargetFpsIndex":
-                    key = "targetFpsIndex";
+                case "txtConstraintDelayTicks":
+                    key = "constraintDelayTicks";
+                    intValue = true;
+                    zeroAllowed = true;
+                    break;
+                case "txtCloudRecoveryFPS":
+                    key = "CloudRecoveryFPS";
+                    intValue = true;
+                    zeroAllowed = true;
+                    break;
+                case "txtMinTLod":
+                    key = "minTLod";
+                    break;
+                case "txtMinOLod":
+                    key = "minOLod";
+                    break;
+                case "txtLodStepMaxInc":
+                    key = "LodStepMaxInc";
                     intValue = true;
                     break;
-                case "txtMinLod":
-                    key = "minLod";
-                    break;
-                case "txtTlodDefault":
-                    key = "defaultTlod";
-                    break;
-                case "txtOlodDefault":
-                    key = "defaultOlod";
+                case "txtLodStepMaxDec":
+                    key = "LodStepMaxDec";
+                    intValue = true;
                     break;
                 default:
                     key = "";
@@ -295,7 +334,7 @@ namespace DynamicLOD
             if (key == "")
                 return;
 
-            if (intValue && int.TryParse(sender.Text, CultureInfo.InvariantCulture, out int iValue))
+            if (intValue && int.TryParse(sender.Text, CultureInfo.InvariantCulture, out int iValue) && (iValue != 0 || zeroAllowed))
             {
                 if (notNegative)
                     iValue = Math.Abs(iValue);
@@ -427,16 +466,61 @@ namespace DynamicLOD
             }
         }
 
-        private void chkProfileIsVr_Click(object sender, RoutedEventArgs e)
+        private void txtLodStepMaxInc_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (cbProfile.SelectedIndex >= 0 && cbProfile.SelectedIndex <= ServiceModel.maxProfile)
+
+        }
+
+        private void txtLodStepMaxDec_TextChanged(object sender, TextChangedEventArgs e)
+        {
+
+        }
+
+         private void chkCruiseLODUpdates_Checked(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void chkDecCloudQ_Checked(object sender, RoutedEventArgs e)
+        {
+
+        }
+        
+        private void chkLodStepMax_Checked(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void chkLodStepMax_WindowVisibility()
+        {
+            if (serviceModel.LodStepMax)
             {
-                serviceModel.SetSetting($"isVr{serviceModel.SelectedProfile}", chkProfileIsVr.IsChecked.ToString().ToLower());
-                LoadSettings();
+                lblLodStepMax.Visibility = Visibility.Visible;
+                txtLodStepMaxInc.Visibility = Visibility.Visible;
+                txtLodStepMaxDec.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                lblLodStepMax.Visibility = Visibility.Hidden;
+                txtLodStepMaxInc.Visibility = Visibility.Hidden;
+                txtLodStepMaxDec.Visibility = Visibility.Hidden;
+            }
+        }
+        private void chkCloudRecoveryFPS_WindowVisibility()
+        {
+            if (serviceModel.DecCloudQ)
+            {
+                lblCloudRecoveryFPS.Visibility = Visibility.Visible;
+                txtCloudRecoveryFPS.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                lblCloudRecoveryFPS.Visibility = Visibility.Hidden;
+                txtCloudRecoveryFPS.Visibility = Visibility.Hidden;
             }
         }
     }
-
+ 
     public class RowToIndexConvertor : MarkupExtension, IValueConverter
     {
         static RowToIndexConvertor convertor;

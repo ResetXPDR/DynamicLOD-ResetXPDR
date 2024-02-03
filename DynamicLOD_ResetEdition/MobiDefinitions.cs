@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public enum MOBIFLIGHT_CLIENT_DATA_ID
     {

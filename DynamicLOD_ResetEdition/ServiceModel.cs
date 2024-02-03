@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Windows;
 
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public class ServiceModel
     {
-        public static readonly int maxProfile = 3;
+        public static readonly int maxProfile = 6;
         private static readonly int BuildConfigVersion = 1;
         public int ConfigVersion { get; set; }
         public bool ServiceExited { get; set; } = false;
@@ -17,15 +18,11 @@ namespace DynamicLOD
 
         public MemoryManager MemoryAccess { get; set; } = null;
         public int VerticalTrend { get; set; }
+        public float AltLead { get; set; }
         public bool OnGround { get; set; } = true;
         public bool ForceEvaluation { get; set; } = false;
 
         public int SelectedProfile { get; set; } = 0;
-        public bool ProfileSelectionChanged { get; set; } = false;
-        public int LastProfile { get; set; } = 0;
-        public bool[] ProfilesVR = new bool[maxProfile];
-        public bool IsVrProfile { get { return ProfilesVR[SelectedProfile]; } }
-        public bool IsVrModeActive { get { return MemoryAccess != null && MemoryAccess.IsVrModeActive(); } }
         public List<List<(float, float)>> PairsTLOD { get; set; }
         public int CurrentPairTLOD;
         public List<List<(float, float)>> PairsOLOD { get; set; }
@@ -33,19 +30,31 @@ namespace DynamicLOD
         public bool fpsMode { get; set; }
         public bool UseTargetFPS { get; set; }
         public int TargetFPS { get; set; }
-        public int TargetFPSIndex { get; set; }
+        public int CloudRecoveryFPS { get; set; }
         public int ConstraintTicks { get; set; }
+        public int ConstraintDelayTicks { get; set; }
         public float DecreaseTLOD { get; set; }
         public float DecreaseOLOD { get; set; }
-        public float MinLOD { get; set; }
+        public float MinTLOD { get; set; }
+        public float MinOLOD { get; set; }
         public float SimMinLOD { get; set; }
-        public float DefaultTLOD { get; set; }
-        public float DefaultOLOD { get; set; }
+        public float DefaultTLOD { get; set; } = 100;
+        public float DefaultTLOD_VR { get; set; } = 100;
+        public float DefaultOLOD { get; set; } = 100;
+        public float DefaultOLOD_VR { get; set; } = 100;
+        public int DefaultCloudQ { get; set; } = 2;
+        public int DefaultCloudQ_VR { get; set; } = 2;
+        public bool DefaultSettingsRead { get; set; } = false;
+        public int LodStepMaxInc { get; set; }
+        public int LodStepMaxDec { get; set; }
 
         public string LogLevel { get; set; }
         public static int MfLvarsPerFrame { get; set; }
         public bool WaitForConnect { get; set; }
         public bool OpenWindow { get; set; }
+        public bool CruiseLODUpdates { get; set; }
+        public bool DecCloudQ { get; set; }
+        public bool LodStepMax { get; set; }
         public string SimBinary { get; set; }
         public string SimModule { get; set; }
         public long OffsetModuleBase { get; set; }
@@ -53,9 +62,8 @@ namespace DynamicLOD
         public long OffsetPointerTlod { get; set; }
         public long OffsetPointerTlodVr { get; set; }
         public long OffsetPointerOlod { get; set; }
-        public long OffsetVr1 { get; set; }
-        public long OffsetVr2 { get; set; }
-        public bool AutoSwitchVr { get; set; }
+        public long OffsetPointerCloudQ { get; set; }
+        public bool TestVersion { get; set; } = false;
 
         protected ConfigurationFile ConfigurationFile = new();
 
@@ -70,40 +78,48 @@ namespace DynamicLOD
         {
             ConfigurationFile.LoadConfiguration();
 
+            TestVersion = true;
             LogLevel = Convert.ToString(ConfigurationFile.GetSetting("logLevel", "Debug"));
             MfLvarsPerFrame = Convert.ToInt32(ConfigurationFile.GetSetting("mfLvarPerFrame", "15"));
             ConfigVersion = Convert.ToInt32(ConfigurationFile.GetSetting("ConfigVersion", "1"));
             WaitForConnect = Convert.ToBoolean(ConfigurationFile.GetSetting("waitForConnect", "true"));
             OpenWindow = Convert.ToBoolean(ConfigurationFile.GetSetting("openWindow", "true"));
+            CruiseLODUpdates = Convert.ToBoolean(ConfigurationFile.GetSetting("CruiseLODUpdates", "false"));
+            DecCloudQ = Convert.ToBoolean(ConfigurationFile.GetSetting("DecCloudQ", "false"));
             SimBinary = Convert.ToString(ConfigurationFile.GetSetting("simBinary", "FlightSimulator"));
             SimModule = Convert.ToString(ConfigurationFile.GetSetting("simModule", "WwiseLibPCx64P.dll"));
             UseTargetFPS = Convert.ToBoolean(ConfigurationFile.GetSetting("useTargetFps", "true"));
             TargetFPS = Convert.ToInt32(ConfigurationFile.GetSetting("targetFps", "40"));
-            TargetFPSIndex = Convert.ToInt32(ConfigurationFile.GetSetting("targetFpsIndex", "2"));
+            CloudRecoveryFPS = Convert.ToInt32(ConfigurationFile.GetSetting("CloudRecoveryFPS", "0"));
             ConstraintTicks = Convert.ToInt32(ConfigurationFile.GetSetting("constraintTicks", "60"));
+            ConstraintDelayTicks = Convert.ToInt32(ConfigurationFile.GetSetting("constraintDelayTicks", "1"));
             DecreaseTLOD = Convert.ToSingle(ConfigurationFile.GetSetting("decreaseTlod", "50"), new RealInvariantFormat(ConfigurationFile.GetSetting("decreaseTlod", "50")));
             DecreaseOLOD = Convert.ToSingle(ConfigurationFile.GetSetting("decreaseOlod", "50"), new RealInvariantFormat(ConfigurationFile.GetSetting("decreaseOlod", "50")));
-            MinLOD = Convert.ToSingle(ConfigurationFile.GetSetting("minLod", "100"), new RealInvariantFormat(ConfigurationFile.GetSetting("minLod", "100")));
-            DefaultTLOD = Convert.ToSingle(ConfigurationFile.GetSetting("defaultTlod", "200"), new RealInvariantFormat(ConfigurationFile.GetSetting("defaultTlod", "200")));
-            DefaultOLOD = Convert.ToSingle(ConfigurationFile.GetSetting("defaultOlod", "200"), new RealInvariantFormat(ConfigurationFile.GetSetting("defaultOlod", "200")));
+            MinTLOD = Convert.ToSingle(ConfigurationFile.GetSetting("minTLod", "100"), new RealInvariantFormat(ConfigurationFile.GetSetting("minTLod", "100")));
+            MinOLOD = Convert.ToSingle(ConfigurationFile.GetSetting("minOLod", "100"), new RealInvariantFormat(ConfigurationFile.GetSetting("minOLod", "100")));
+            LodStepMaxInc = Convert.ToInt32(ConfigurationFile.GetSetting("LodStepMaxInc", "5"));
+            LodStepMaxDec = Convert.ToInt32(ConfigurationFile.GetSetting("LodStepMaxDec", "5"));
             OffsetModuleBase = Convert.ToInt64(ConfigurationFile.GetSetting("offsetModuleBase", "0x004B2368"), 16);
             OffsetPointerMain = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerMain", "0x3D0"), 16);
             OffsetPointerTlod = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerTlod", "0xC"), 16);
             OffsetPointerTlodVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerTlodVr", "0x114"), 16);
             OffsetPointerOlod = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerOlod", "0xC"), 16);
-            OffsetVr1 = Convert.ToInt64(ConfigurationFile.GetSetting("offsetVr1", "0x765B694"), 16);
-            OffsetVr2 = Convert.ToInt64(ConfigurationFile.GetSetting("offsetVr2", "0x765B704"), 16);
+            OffsetPointerCloudQ = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCloudQ", "0x44"), 16);
             SimMinLOD = Convert.ToSingle(ConfigurationFile.GetSetting("simMinLod", "10"), new RealInvariantFormat(ConfigurationFile.GetSetting("simMinLod", "10")));
-            AutoSwitchVr = Convert.ToBoolean(ConfigurationFile.GetSetting("autoSwitchVr", "true"));
-
+            if (Boolean.TryParse(ConfigurationFile.GetSetting("LodStepMax", "false"), out bool flag)) LodStepMax = Convert.ToBoolean(ConfigurationFile.GetSetting("LodStepMax", "false"));
+            else LodStepMax = false;
+            if (!LodStepMax) 
+            {
+                LodStepMaxInc = 1000;
+                LodStepMaxDec = 1000;
+            }
+ 
             SelectedProfile = Convert.ToInt32(ConfigurationFile.GetSetting("selectedProfile", "0"));
             PairsTLOD = new();
             PairsOLOD = new();
-            ProfilesVR = new bool[maxProfile];
 
             for (int i = 0; i < maxProfile; i++)
             {
-                ProfilesVR[i] = Convert.ToBoolean(ConfigurationFile.GetSetting($"isVr{i}", "false"));
                 PairsTLOD.Add(LoadPairs(ConfigurationFile.GetSetting($"tlodPairs{i}", "0:100|1500:150|5000:200")));
                 PairsOLOD.Add(LoadPairs(ConfigurationFile.GetSetting($"olodPairs{i}", "0:100|2500:150|7500:200")));
             }
@@ -178,7 +194,6 @@ namespace DynamicLOD
         {
             for (int i = 0; i < maxProfile; i++)
             {
-                ConfigurationFile[$"isVr{i}"] = ProfilesVR[i].ToString().ToLower();
                 ConfigurationFile[$"tlodPairs{i}"] = CreateLodString(PairsTLOD[i]);
                 ConfigurationFile[$"olodPairs{i}"] = CreateLodString(PairsOLOD[i]);
             }

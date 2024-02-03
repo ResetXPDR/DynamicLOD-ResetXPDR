@@ -8,7 +8,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-namespace DynamicLOD
+namespace DynamicLOD_ResetEdition
 {
     public partial class App : Application
     {
@@ -18,16 +18,16 @@ namespace DynamicLOD
         private TaskbarIcon notifyIcon;
 
         public static new App Current => Application.Current as App;
-        public static string ConfigFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD\DynamicLOD.config";
-        public static string AppDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD\bin";
+        public static string ConfigFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD_ResetEdition\DynamicLOD_ResetEdition.config";
+        public static string AppDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD_ResetEdition\bin";
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            if (Process.GetProcessesByName("DynamicLOD").Length > 1)
+            if (Process.GetProcessesByName("DynamicLOD_ResetEdition").Length > 1)
             {
-                MessageBox.Show("DynamicLOD is already running!", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("DynamicLOD_ResetEdition is already running!", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
                 return;
             }
@@ -36,7 +36,7 @@ namespace DynamicLOD
 
             if (!File.Exists(ConfigFile))
             {
-                ConfigFile = Directory.GetCurrentDirectory() + @"\DynamicLOD.config";
+                ConfigFile = Directory.GetCurrentDirectory() + @"\DynamicLOD_ResetEdition.config";
                 if (!File.Exists(ConfigFile))
                 {
                     MessageBox.Show("No Configuration File found! Closing ...", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -69,8 +69,19 @@ namespace DynamicLOD
             Model.CancellationRequested = true;
             notifyIcon?.Dispose();
             base.OnExit(e);
+            if (Model.DefaultSettingsRead && Model.IsSessionRunning)
+            {
+                Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting LODs to {Model.DefaultTLOD} / {Model.DefaultOLOD} and VR {Model.DefaultTLOD_VR} / {Model.DefaultOLOD_VR}");
+                Model.MemoryAccess.SetTLOD_PC(Model.DefaultTLOD);
+                Model.MemoryAccess.SetTLOD_VR(Model.DefaultTLOD_VR);
+                Model.MemoryAccess.SetOLOD_PC(Model.DefaultOLOD);
+                Model.MemoryAccess.SetOLOD_VR(Model.DefaultOLOD_VR);
+                Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting cloud quality to {Model.DefaultCloudQ} / VR {Model.DefaultCloudQ_VR}");
+                Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ);
+                Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR);
+            }
 
-            Logger.Log(LogLevel.Information, "App:OnExit", "DynamicLOD exiting ...");
+            Logger.Log(LogLevel.Information, "App:OnExit", "DynamicLOD_ResetEdition exiting ...");
         }
 
         protected void OnTick(object sender, EventArgs e)
@@ -97,7 +108,7 @@ namespace DynamicLOD
                 loggerConfiguration.MinimumLevel.Information();
             Log.Logger = loggerConfiguration.CreateLogger();
             Log.Information($"-----------------------------------------------------------------------");
-            Logger.Log(LogLevel.Information, "App:InitLog", $"DynamicLOD started! Log Level: {logLevel} Log File: {logFilePath}");
+            Logger.Log(LogLevel.Information, "App:InitLog", $"DynamicLOD_ResetEdition started! Log Level: {logLevel} Log File: {logFilePath}");
         }
 
         protected void InitSystray()
@@ -110,7 +121,7 @@ namespace DynamicLOD
 
         public static Icon GetIcon(string filename)
         {
-            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"DynamicLOD.{filename}");
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"DynamicLOD_ResetEdition.{filename}");
             return new Icon(stream);
         }
     }
