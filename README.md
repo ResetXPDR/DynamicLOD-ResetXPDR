@@ -4,14 +4,14 @@ Based on muumimorko's idea and code in MSFS_AdaptiveLOD, as further developed by
 This utility builds upon the functionality provided in DynamicLOD, which aims to improve MSFS performance and smoothness by dynamically changing the TLOD (and OLOD) based on the current AGL, and provides additonal features such as:<br/>
 - LOD updates in cruise,<br/> 
 - Simulataneous PC and VR mode compatibilty,<br/>
-- Incremental steps between LOD changes,<br/>
+- Incremental steps between LOD changes to improve smoothness,<br/>
 - Optional cloud quality decrease with FPS Adaption,<br/>
 - Enhanced FPS Adaption control,<br/>
 - Auto restoration of original settings changed by the utility,<br/>
 - Removal of redundant features, and<br/>
 - Minor UI changes.<br/><br/>
 
-If you don't know how to use it, or don't comprehend what it does and the possible Consequences of that, it is highly recommended you do not use it.
+If you are not familiar with what MSFS graphics settings, specifically TLOD, OLOD and cloud quality, do and don't understand the consequences of changing them, it is highly recommended you do not use this utility.
 <br/><br/>
 
 ## Requirements
@@ -66,6 +66,6 @@ Some Notes:
   - Tune your AGL/LOD Pairs to the desired Performance (which is more than just FPS).
   - FPS Adaption is just *one temporary* Adjustment on the current AGL/xLOD Pair to fight some special/rare Situations.
   - Forcing the Sim to (un)load Objects in rapid Succession defeats the Goal to reduce Stutters. It is *not* about FPS.
-  - Smooth Transitions lead to smoother Experiences.
+  - Smooth Transitions lead to smoother experiences.  
 
 <br/><br/>
