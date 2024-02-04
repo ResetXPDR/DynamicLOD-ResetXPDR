@@ -11,7 +11,7 @@ This utility builds upon the functionality provided in DynamicLOD, which aims to
 - Removal of redundant features, and<br/>
 - Minor UI changes.<br/><br/>
 
-If you are not familiar with what MSFS graphics settings, specifically TLOD, OLOD and cloud quality, do and don't understand the consequences of changing them, it is highly recommended you do not use this utility.
+If you are not familiar with what MSFS graphics settings do, specifically TLOD, OLOD and cloud quality, and don't understand the consequences of changing them, it is highly recommended you do not use this utility.
 <br/><br/>
 
 ## Requirements
