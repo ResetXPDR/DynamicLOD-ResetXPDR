@@ -57,11 +57,13 @@
                             <Label Name="lblSimFPS" MinWidth="64" VerticalContentAlignment="Center">n/a</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Label MinWidth="60" VerticalContentAlignment="Center">TLOD / OLOD:</Label>
-                            <Label Name="lblSimLODs" MinWidth="64" VerticalContentAlignment="Center">n/a</Label>
+                            <Label VerticalContentAlignment="Center">TLOD:</Label>
+                            <Label Name="lblSimTLOD" MinWidth="30" VerticalContentAlignment="Center">n/a</Label>
+                            <Label VerticalContentAlignment="Center">OLOD:</Label>
+                            <Label Name="lblSimOLOD" MinWidth="30" VerticalContentAlignment="Center">n/a</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Label MinWidth="60" VerticalContentAlignment="Center">Clouds PC / VR:</Label>
+                            <Label VerticalContentAlignment="Center">Cloud Quality:</Label>
                             <Label Name="lblSimCloudQs" MinWidth="64" VerticalContentAlignment="Center">n/a</Label>
                         </StackPanel>
 

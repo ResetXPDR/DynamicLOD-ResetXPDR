@@ -45,9 +45,11 @@ namespace DynamicLOD_ResetEdition
             Model.CurrentPairTLOD = 0;
             Model.CurrentPairOLOD = 0;
             Model.fpsMode = false;
-        }
+            Model.tlod_step = false;
+            Model.olod_step = false;
+    }
 
-        private void UpdateVariables()
+    private void UpdateVariables()
         {
             float vs = SimConnect.ReadSimVar("VERTICAL SPEED", "feet per second");
             Model.OnGround = SimConnect.ReadSimVar("SIM ON GROUND", "Bool") == 1.0f;
@@ -85,14 +87,19 @@ namespace DynamicLOD_ResetEdition
 
         // New in 0.3.6
         // Separate LOD minimums in FPS Adaption or at the very least disabled for OLOD so that system wide setting is used instead
-        // Remove Reduce on pairs/indices setting for FPS adaption because no one uses it?
-        // Decrease cloud quality option for FPS Adaption with user definable null zone for FPS Adaption cancellation for cloud change
-
-        // To fix/improve
+        // Remove Reduce on pairs/indices setting for FPS adaption because no one seems to use
+        // Decrease cloud quality option for FPS Adaption with user definable recovery FPS buffer for FPS Adaption cancellation for cloud change
         // Reduce/Remove LOD step log entries
         // Save starting TLOD and OLOD values so that they can automatically be restored upon app exit and remove setting from UI
+        // Delay onset of FPS Adaption so that false triggering on transient FPS dips doesn't occur
+        // Auto detect PC and VR mode trial code.
+        // Config file auto restoration.
+
+        // To fix/improve
+        // Fix mobisim/wasm error message recorded in log file on MSFS exit which has been present since 0.3.2
         // Auto clean of no longer used entries in config file following update, using version stored in config file?
-        // Averaging of FPS values over 5 seconds so that false triggering of FPS adapation doesn't occur
+        // Trial simpler LOD selection method with two LOD settings only, one on ground and one at say 5000 ft, and interpolate LOD between these altitudes
+        // Trial CPU and GPU load detection software with a view to automating CPU and GPU bound setting changes respectively to recover from FPS dips 
 
 
         public void RunTick()
@@ -158,9 +165,11 @@ namespace DynamicLOD_ResetEdition
                 {
                     if (tlod > newlod && tlod - Model.LodStepMaxDec > newlod) newlod = tlod - Model.LodStepMaxDec;
                     else if (tlod + Model.LodStepMaxInc < newlod) newlod = tlod + Model.LodStepMaxInc;
+                    Model.tlod_step = true;
                 }
                 Model.MemoryAccess.SetTLOD(newlod);
             }
+            else Model.tlod_step = false;
 
             evalResult = EvaluateLodPairByHeight(ref Model.CurrentPairOLOD, Model.PairsOLOD[Model.SelectedProfile]);
             newlod = EvaluateLodValue(Model.PairsOLOD[Model.SelectedProfile], Model.CurrentPairOLOD, olod_dec, false);
@@ -171,9 +180,11 @@ namespace DynamicLOD_ResetEdition
                 {
                     if (olod > newlod && olod - Model.LodStepMaxDec > newlod) newlod = olod - Model.LodStepMaxDec;
                     else if (olod + Model.LodStepMaxInc < newlod) newlod = olod + Model.LodStepMaxInc;
+                    Model.olod_step = true;
                 }
                 Model.MemoryAccess.SetOLOD(newlod);
             }
+            else Model.olod_step = false;
             
             Model.ForceEvaluation = false;
         }

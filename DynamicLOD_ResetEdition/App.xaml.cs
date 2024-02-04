@@ -36,12 +36,16 @@ namespace DynamicLOD_ResetEdition
 
             if (!File.Exists(ConfigFile))
             {
-                ConfigFile = Directory.GetCurrentDirectory() + @"\DynamicLOD_ResetEdition.config";
-                if (!File.Exists(ConfigFile))
+                string ConfigFileDefault = Directory.GetCurrentDirectory() + @"\DynamicLOD_ResetEdition.config";
+                if (!File.Exists(ConfigFileDefault))
                 {
                     MessageBox.Show("No Configuration File found! Closing ...", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     Application.Current.Shutdown();
                     return;
+                }
+                else
+                {
+                    File.Copy(ConfigFileDefault, ConfigFile);
                 }
             }
 
@@ -94,7 +98,7 @@ namespace DynamicLOD_ResetEdition
 
         protected void InitLog()
         {
-            string logFilePath = @"..\log\" + Model.GetSetting("logFilePath", "Fenix2GSX.log");
+            string logFilePath = @"..\log\" + Model.GetSetting("logFilePath", "DynamicLOD_ResetEdition.log");
             string logLevel = Model.GetSetting("logLevel", "Debug"); ;
             LoggerConfiguration loggerConfiguration = new LoggerConfiguration().WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 3,
                                                     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message} {NewLine}{Exception}");

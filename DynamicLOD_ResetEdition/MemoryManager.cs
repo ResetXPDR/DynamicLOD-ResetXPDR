@@ -34,9 +34,9 @@ namespace DynamicLOD_ResetEdition
                 Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address OLOD: 0x{addrOLOD:X} / {addrOLOD}");
                 addrCloudQ = addrTLOD + Model.OffsetPointerCloudQ;
                 Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address CloudQ: 0x{addrCloudQ:X} / {addrCloudQ}");
-                addrCloudQ_VR = addrCloudQ + Convert.ToInt64("0x108", 16);
+                addrCloudQ_VR = addrCloudQ + Model.OffsetPointerCloudQVr; 
                 Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address CloudQ VR: 0x{addrCloudQ_VR:X} / {addrCloudQ_VR}");
-                addrVrMode = addrTLOD - 0x1C;
+                addrVrMode = addrTLOD - Model.OffsetPointerVrMode;
                 Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Address VrMode1: 0x{addrVrMode:X} / {addrVrMode}");
             }
             catch (Exception ex)

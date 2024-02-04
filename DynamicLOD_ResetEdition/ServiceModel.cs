@@ -47,6 +47,9 @@ namespace DynamicLOD_ResetEdition
         public bool DefaultSettingsRead { get; set; } = false;
         public int LodStepMaxInc { get; set; }
         public int LodStepMaxDec { get; set; }
+        public bool tlod_step { get; set; } = false;
+        public bool olod_step { get; set; } = false;
+
 
         public string LogLevel { get; set; }
         public static int MfLvarsPerFrame { get; set; }
@@ -63,6 +66,8 @@ namespace DynamicLOD_ResetEdition
         public long OffsetPointerTlodVr { get; set; }
         public long OffsetPointerOlod { get; set; }
         public long OffsetPointerCloudQ { get; set; }
+        public long OffsetPointerCloudQVr { get; set; }
+        public long OffsetPointerVrMode { get; set; }
         public bool TestVersion { get; set; } = false;
 
         protected ConfigurationFile ConfigurationFile = new();
@@ -78,7 +83,7 @@ namespace DynamicLOD_ResetEdition
         {
             ConfigurationFile.LoadConfiguration();
 
-            TestVersion = true;
+            //TestVersion = true;
             LogLevel = Convert.ToString(ConfigurationFile.GetSetting("logLevel", "Debug"));
             MfLvarsPerFrame = Convert.ToInt32(ConfigurationFile.GetSetting("mfLvarPerFrame", "15"));
             ConfigVersion = Convert.ToInt32(ConfigurationFile.GetSetting("ConfigVersion", "1"));
@@ -105,6 +110,8 @@ namespace DynamicLOD_ResetEdition
             OffsetPointerTlodVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerTlodVr", "0x114"), 16);
             OffsetPointerOlod = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerOlod", "0xC"), 16);
             OffsetPointerCloudQ = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCloudQ", "0x44"), 16);
+            OffsetPointerCloudQVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCloudQVr", "0x108"), 16);
+            OffsetPointerVrMode = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerVrMode", "0x1C"), 16);
             SimMinLOD = Convert.ToSingle(ConfigurationFile.GetSetting("simMinLod", "10"), new RealInvariantFormat(ConfigurationFile.GetSetting("simMinLod", "10")));
             if (Boolean.TryParse(ConfigurationFile.GetSetting("LodStepMax", "false"), out bool flag)) LodStepMax = Convert.ToBoolean(ConfigurationFile.GetSetting("LodStepMax", "false"));
             else LodStepMax = false;

@@ -125,21 +125,24 @@ namespace DynamicLOD_ResetEdition
 
             if (serviceModel.MemoryAccess != null)
             {
-                lblSimLODs.Content = serviceModel.MemoryAccess.GetTLOD_PC().ToString("F0") + " / " + serviceModel.MemoryAccess.GetOLOD_PC().ToString("F0");
-                lblSimCloudQs.Content = CloudQualityLabel(serviceModel.MemoryAccess.GetCloudQ()) + " / " + CloudQualityLabel(serviceModel.MemoryAccess.GetCloudQ_VR());
+                lblSimTLOD.Content = serviceModel.MemoryAccess.GetTLOD_PC().ToString("F0");
+                lblSimOLOD.Content = serviceModel.MemoryAccess.GetOLOD_PC().ToString("F0");
                 if (serviceModel.MemoryAccess.IsVrModeActive())
                 {
+                    lblSimCloudQs.Content = CloudQualityLabel(serviceModel.MemoryAccess.GetCloudQ_VR());
                     lblIsVR.Content = "VR Mode active";
                 }
                 else
                 {
+                    lblSimCloudQs.Content = CloudQualityLabel(serviceModel.MemoryAccess.GetCloudQ());
                     lblIsVR.Content = "PC Mode active";
                 }
 
             }
             else
             {
-                lblSimLODs.Content = "n/a";
+                lblSimTLOD.Content = "n/a";
+                lblSimOLOD.Content = "n/a";
                 lblSimCloudQs.Content = "n/a";
             }
 
@@ -155,15 +158,21 @@ namespace DynamicLOD_ResetEdition
                 lblSimFPS.Foreground = new SolidColorBrush(Colors.Black);
             }
 
-            if (serviceModel.fpsMode)
+            if (serviceModel.fpsMode || serviceModel.tlod_step || serviceModel.olod_step)
             {
-                lblSimLODs.Foreground = new SolidColorBrush(Colors.Red);
-                if (serviceModel.DecCloudQ) lblSimCloudQs.Foreground = new SolidColorBrush(Colors.Red);
+                if (serviceModel.tlod_step) lblSimTLOD.Foreground = new SolidColorBrush(Colors.Orange);
+                else if (serviceModel.fpsMode) lblSimTLOD.Foreground = new SolidColorBrush(Colors.Red);
+                else lblSimTLOD.Foreground = new SolidColorBrush(Colors.Black);
+                if (serviceModel.olod_step) lblSimOLOD.Foreground = new SolidColorBrush(Colors.Orange);
+                else if (serviceModel.fpsMode) lblSimOLOD.Foreground = new SolidColorBrush(Colors.Red);
+                else lblSimOLOD.Foreground = new SolidColorBrush(Colors.Black);
+                if (serviceModel.fpsMode && serviceModel.DecCloudQ) lblSimCloudQs.Foreground = new SolidColorBrush(Colors.Red);
                 else lblSimCloudQs.Foreground = new SolidColorBrush(Colors.Black);
             }
             else
             {
-                lblSimLODs.Foreground = new SolidColorBrush(Colors.Black);
+                lblSimTLOD.Foreground = new SolidColorBrush(Colors.Black);
+                lblSimOLOD.Foreground = new SolidColorBrush(Colors.Black);
                 lblSimCloudQs.Foreground = new SolidColorBrush(Colors.Black);
             }
         }
