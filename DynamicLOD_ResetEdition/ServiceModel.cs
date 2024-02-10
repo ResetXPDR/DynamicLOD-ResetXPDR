@@ -68,8 +68,9 @@ namespace DynamicLOD_ResetEdition
         public long OffsetPointerCloudQ { get; set; }
         public long OffsetPointerCloudQVr { get; set; }
         public long OffsetPointerVrMode { get; set; }
+        public long OffsetPointerFgMode { get; set; }
         public bool TestVersion { get; set; } = false;
-
+  
         protected ConfigurationFile ConfigurationFile = new();
 
         public ServiceModel()
@@ -112,6 +113,7 @@ namespace DynamicLOD_ResetEdition
             OffsetPointerCloudQ = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCloudQ", "0x44"), 16);
             OffsetPointerCloudQVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCloudQVr", "0x108"), 16);
             OffsetPointerVrMode = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerVrMode", "0x1C"), 16);
+            OffsetPointerFgMode = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerFgMode", "0x4A"), 16);
             SimMinLOD = Convert.ToSingle(ConfigurationFile.GetSetting("simMinLod", "10"), new RealInvariantFormat(ConfigurationFile.GetSetting("simMinLod", "10")));
             if (Boolean.TryParse(ConfigurationFile.GetSetting("LodStepMax", "false"), out bool flag)) LodStepMax = Convert.ToBoolean(ConfigurationFile.GetSetting("LodStepMax", "false"));
             else LodStepMax = false;
@@ -128,7 +130,7 @@ namespace DynamicLOD_ResetEdition
             for (int i = 0; i < maxProfile; i++)
             {
                 PairsTLOD.Add(LoadPairs(ConfigurationFile.GetSetting($"tlodPairs{i}", "0:100|1500:150|5000:200")));
-                PairsOLOD.Add(LoadPairs(ConfigurationFile.GetSetting($"olodPairs{i}", "0:100|2500:150|7500:200")));
+                PairsOLOD.Add(LoadPairs(ConfigurationFile.GetSetting($"olodPairs{i}", "0:100|2500:50|7500:10")));
             }
             CurrentPairTLOD = 0;
             CurrentPairOLOD = 0;

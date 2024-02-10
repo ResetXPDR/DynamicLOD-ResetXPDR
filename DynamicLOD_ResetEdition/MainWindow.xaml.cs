@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -12,6 +14,8 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
+using System.Windows.Navigation;
 using System.Windows.Threading;
 
 namespace DynamicLOD_ResetEdition
@@ -30,8 +34,8 @@ namespace DynamicLOD_ResetEdition
             InitializeComponent();
             this.notifyModel = notifyModel;
             this.serviceModel = serviceModel;
-            
-            string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
+             string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             assemblyVersion = assemblyVersion[0..assemblyVersion.LastIndexOf('.')];
             Title += " (" + assemblyVersion + (serviceModel.TestVersion ? "-test" : "")+ ")";
 
@@ -46,8 +50,97 @@ namespace DynamicLOD_ResetEdition
                 Interval = TimeSpan.FromSeconds(1)
             };
             timer.Tick += OnTick;
-        }
 
+
+            int currentAppVersion = int.Parse(assemblyVersion.Replace(".", ""));
+            string latestAppVersion = GetFinalRedirect("https://github.com/ResetXPDR/DynamicLOD_ResetEdition/releases/latest");
+            if (latestAppVersion != null && latestAppVersion.Length > 5)
+                { 
+                    latestAppVersion = latestAppVersion.Substring(latestAppVersion.Length - 5, 5);
+                    if ((serviceModel.TestVersion && int.Parse(latestAppVersion.Replace(".", "")) >= currentAppVersion)
+                        || int.Parse(latestAppVersion.Replace(".", "")) > currentAppVersion)
+                    {
+                        lblsimCompatible.Content = "Newer app version " + (latestAppVersion) + " now available";
+                        lblsimCompatible.Foreground = new SolidColorBrush(Colors.Green);
+                        lblappUrl.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                    if (serviceModel.TestVersion)
+                        {
+                        lblsimCompatible.Content = latestAppVersion + " version is latest formal release. Check link works";
+                        lblsimCompatible.Foreground = new SolidColorBrush(Colors.Green);
+                        lblappUrl.Visibility = Visibility.Visible;
+                        }
+                    else
+                    {
+                        lblsimCompatible.Content = "Latest app version is installed";
+                        lblsimCompatible.Foreground = new SolidColorBrush(Colors.Green);
+                        lblappUrl.Visibility = Visibility.Hidden;
+                    }
+                }
+            }
+        }
+        public static string GetFinalRedirect(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return url;
+
+            int maxRedirCount = 8;  // prevent infinite loops
+            string newUrl = url;
+            do
+            {
+                HttpWebRequest req = null;
+                HttpWebResponse resp = null;
+                try
+                {
+                    req = (HttpWebRequest)HttpWebRequest.Create(url);
+                    req.Method = "HEAD";
+                    req.AllowAutoRedirect = false;
+                    resp = (HttpWebResponse)req.GetResponse();
+                    switch (resp.StatusCode)
+                    {
+                        case HttpStatusCode.OK:
+                            return newUrl;
+                        case HttpStatusCode.Redirect:
+                        case HttpStatusCode.MovedPermanently:
+                        case HttpStatusCode.RedirectKeepVerb:
+                        case HttpStatusCode.RedirectMethod:
+                            newUrl = resp.Headers["Location"];
+                            if (newUrl == null)
+                                return url;
+
+                            if (newUrl.IndexOf("://", System.StringComparison.Ordinal) == -1)
+                            {
+                                // Doesn't have a URL Schema, meaning it's a relative or absolute URL
+                                Uri u = new Uri(new Uri(url), newUrl);
+                                newUrl = u.ToString();
+                            }
+                            break;
+                        default:
+                            return newUrl;
+                    }
+                    url = newUrl;
+                }
+                catch (WebException)
+                {
+                    // Return the last known good URL
+                    return newUrl;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Error, "MainWindow.xaml:GetFinalRedirect", $"Exception {ex}: {ex.Message}");
+                    return null;
+                }
+                finally
+                {
+                    if (resp != null)
+                        resp.Close();
+                }
+            } while (maxRedirCount-- > 0);
+
+            return newUrl;
+        }
         protected void LoadSettings()
         {
             chkOpenWindow.IsChecked = serviceModel.OpenWindow;
@@ -116,15 +209,23 @@ namespace DynamicLOD_ResetEdition
             else return "n/a";
         }
 
+        protected float GetAverageFPS()
+        {
+            if (serviceModel.MemoryAccess != null && serviceModel.MemoryAccess.IsFgModeActive())
+                return IPCManager.SimConnect.GetAverageFPS() * 2.0f;
+            else
+                return IPCManager.SimConnect.GetAverageFPS();
+        }
         protected void UpdateLiveValues()
         {
             if (IPCManager.SimConnect != null && IPCManager.SimConnect.IsConnected)
-                lblSimFPS.Content = IPCManager.SimConnect.GetAverageFPS().ToString("F2");
+                lblSimFPS.Content = GetAverageFPS().ToString("F2");
             else
                 lblSimFPS.Content = "n/a";
 
             if (serviceModel.MemoryAccess != null)
             {
+                lblappUrl.Visibility = Visibility.Hidden;
                 lblSimTLOD.Content = serviceModel.MemoryAccess.GetTLOD_PC().ToString("F0");
                 lblSimOLOD.Content = serviceModel.MemoryAccess.GetOLOD_PC().ToString("F0");
                 if (serviceModel.MemoryAccess.IsVrModeActive())
@@ -134,8 +235,19 @@ namespace DynamicLOD_ResetEdition
                 }
                 else
                 {
-                    lblSimCloudQs.Content = CloudQualityLabel(serviceModel.MemoryAccess.GetCloudQ());
-                    lblIsVR.Content = "PC Mode active";
+                    lblSimCloudQs.Content = CloudQualityLabel(serviceModel.MemoryAccess.GetCloudQ_PC());
+                    lblIsVR.Content = "PC Mode" + (serviceModel.MemoryAccess.IsFgModeActive() ? " & FG" : "") + " active";
+                }
+     
+                if (serviceModel.MemoryAccess.MemoryWritesAllowed())
+                {
+                    lblsimCompatible.Visibility = Visibility.Hidden;
+
+                }
+                else
+                {
+                    lblsimCompatible.Content = "Incompatible MSFS version - Sim Values read only";
+                    lblsimCompatible.Foreground = new SolidColorBrush(Colors.Red);
                 }
 
             }
@@ -148,7 +260,7 @@ namespace DynamicLOD_ResetEdition
 
             if (serviceModel.UseTargetFPS && serviceModel.IsSessionRunning)
             {
-                if (IPCManager.SimConnect.GetAverageFPS() < serviceModel.TargetFPS)
+                if (GetAverageFPS() < serviceModel.TargetFPS)
                     lblSimFPS.Foreground = new SolidColorBrush(Colors.Red);
                 else
                     lblSimFPS.Foreground = new SolidColorBrush(Colors.DarkGreen);
@@ -499,7 +611,21 @@ namespace DynamicLOD_ResetEdition
         {
 
         }
-
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+        {
+            try
+            {
+                var myProcess = new Process();
+                myProcess.StartInfo.UseShellExecute = true;
+                myProcess.StartInfo.FileName = "https://github.com/ResetXPDR/DynamicLOD_ResetEdition/releases/latest";
+                myProcess.Start();
+                e.Handled = true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "MainWindow.xaml:Hyperlink_RequestNavigate", $"Exception {ex}: {ex.Message}");
+            }
+        }
         private void chkLodStepMax_WindowVisibility()
         {
             if (serviceModel.LodStepMax)

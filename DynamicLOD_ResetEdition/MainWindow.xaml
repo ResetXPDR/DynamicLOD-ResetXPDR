@@ -141,7 +141,12 @@
                             <TextBox x:Name="txtLodStepMaxDec" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" TextChanged="txtLodStepMaxDec_TextChanged" Margin="2,0,5,0"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
-                            <Label Name="lblIsVR" MinWidth="60" VerticalContentAlignment="Center" Content=""/>
+                            <Label Name="lblIsVR" MinWidth="50" VerticalContentAlignment="Center" Content=""/>
+                            <Label x:Name="lblsimCompatible" MinWidth="50" VerticalContentAlignment="Center" Content=""/>
+                            <TextBlock x:Name="lblappUrl" VerticalAlignment="Center"> <Hyperlink NavigateUri="https://github.com/ResetXPDR/DynamicLOD_ResetEdition/releases/latest" RequestNavigate="Hyperlink_RequestNavigate">
+                                here</Hyperlink>
+                            </TextBlock>
+
                         </StackPanel>
                     </Grid>
                 </GroupBox>

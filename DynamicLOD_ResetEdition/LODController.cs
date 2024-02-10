@@ -38,7 +38,7 @@ namespace DynamicLOD_ResetEdition
             SimConnect.SubscribeSimVar("SIM ON GROUND", "Bool");
             tlod = Model.MemoryAccess.GetTLOD_PC();
             olod = Model.MemoryAccess.GetOLOD_PC();
-            cloudQ = Model.MemoryAccess.GetCloudQ();
+            cloudQ = Model.MemoryAccess.GetCloudQ_PC();
             cloudQ_VR = Model.MemoryAccess.GetCloudQ_VR();
             if (cloudQ > Model.DefaultCloudQ) Model.DefaultCloudQ = cloudQ;
             if (cloudQ_VR > Model.DefaultCloudQ_VR) Model.DefaultCloudQ_VR = cloudQ_VR;
@@ -73,34 +73,9 @@ namespace DynamicLOD_ResetEdition
 
             tlod = Model.MemoryAccess.GetTLOD_PC();
             olod = Model.MemoryAccess.GetOLOD_PC();
-            cloudQ = Model.MemoryAccess.GetCloudQ();
+            cloudQ = Model.MemoryAccess.GetCloudQ_PC();
             cloudQ_VR = Model.MemoryAccess.GetCloudQ_VR();
         }
-
-
-        // Bug fixes since 0.3.2
-        // Rounding of LOD memory reads to fix precision error when comparing to desired LOD
-        // Forced calling of FindPairs on settings changes to ensure correct LOD pair is selected
-        // Disallow zero as an input value on most integer settings
-        // Stop FPS Adaption minumum LOD acting when FPS Adaption wasn't enabled
-        // Use ResetFPSMode at the end of FindPairs in place of essentially duplicate code
-
-        // New in 0.3.6
-        // Separate LOD minimums in FPS Adaption or at the very least disabled for OLOD so that system wide setting is used instead
-        // Remove Reduce on pairs/indices setting for FPS adaption because no one seems to use
-        // Decrease cloud quality option for FPS Adaption with user definable recovery FPS buffer for FPS Adaption cancellation for cloud change
-        // Reduce/Remove LOD step log entries
-        // Save starting TLOD and OLOD values so that they can automatically be restored upon app exit and remove setting from UI
-        // Delay onset of FPS Adaption so that false triggering on transient FPS dips doesn't occur
-        // Auto detect PC and VR mode trial code.
-        // Config file auto restoration.
-
-        // To fix/improve
-        // Fix mobisim/wasm error message recorded in log file on MSFS exit which has been present since 0.3.2
-        // Auto clean of no longer used entries in config file following update, using version stored in config file?
-        // Trial simpler LOD selection method with two LOD settings only, one on ground and one at say 5000 ft, and interpolate LOD between these altitudes
-        // Trial CPU and GPU load detection software with a view to automating CPU and GPU bound setting changes respectively to recover from FPS dips 
-
 
         public void RunTick()
         {
@@ -118,7 +93,7 @@ namespace DynamicLOD_ResetEdition
 
             if (Model.UseTargetFPS)
             {
-                if (SimConnect.GetAverageFPS() < Model.TargetFPS)
+                if (GetAverageFPS() < Model.TargetFPS)
                 {
                     if (!Model.fpsMode)
                     {
@@ -140,7 +115,7 @@ namespace DynamicLOD_ResetEdition
                         }
                         else fpsModeDelayTicks++;                    }
                 }
-                else if (SimConnect.GetAverageFPS() > Model.TargetFPS + (Model.DecCloudQ ? Model.CloudRecoveryFPS : 0) && Model.fpsMode) 
+                else if (GetAverageFPS() > Model.TargetFPS + (Model.DecCloudQ ? Model.CloudRecoveryFPS : 0) && Model.fpsMode) 
                 {
                     fpsModeTicks++;
                     if (fpsModeTicks > Model.ConstraintTicks || Model.ForceEvaluation)
@@ -163,9 +138,17 @@ namespace DynamicLOD_ResetEdition
                 if (evalResult > 0) Logger.Log(LogLevel.Information, "LODController:RunTick", $"Setting TLOD {newlod}" + (Model.LodStepMax ? " in steps" : ""));
                 if (!Model.ForceEvaluation)
                 {
-                    if (tlod > newlod && tlod - Model.LodStepMaxDec > newlod) newlod = tlod - Model.LodStepMaxDec;
-                    else if (tlod + Model.LodStepMaxInc < newlod) newlod = tlod + Model.LodStepMaxInc;
                     Model.tlod_step = true;
+                    if (tlod > newlod)
+                    {
+                        if (tlod - Model.LodStepMaxDec > newlod) newlod = tlod - Model.LodStepMaxDec;
+                        else Model.tlod_step = false;
+                    }
+                    else
+                    {
+                        if (tlod + Model.LodStepMaxInc < newlod) newlod = tlod + Model.LodStepMaxInc;
+                        else Model.tlod_step = false;
+                    }
                 }
                 Model.MemoryAccess.SetTLOD(newlod);
             }
@@ -178,9 +161,17 @@ namespace DynamicLOD_ResetEdition
                 if (evalResult > 0) Logger.Log(LogLevel.Information, "LODController:RunTick", $"Setting OLOD {newlod}" + (Model.LodStepMax ? " in steps" : ""));
                 if (!Model.ForceEvaluation)
                 {
-                    if (olod > newlod && olod - Model.LodStepMaxDec > newlod) newlod = olod - Model.LodStepMaxDec;
-                    else if (olod + Model.LodStepMaxInc < newlod) newlod = olod + Model.LodStepMaxInc;
                     Model.olod_step = true;
+                    if (olod > newlod)
+                    {
+                        if (olod - Model.LodStepMaxDec > newlod) newlod = olod - Model.LodStepMaxDec;
+                        else Model.olod_step = false;
+                    }
+                    else
+                    {
+                        if (olod + Model.LodStepMaxInc < newlod) newlod = olod + Model.LodStepMaxInc;
+                        else Model.olod_step = false;
+                    }
                 }
                 Model.MemoryAccess.SetOLOD(newlod);
             }
@@ -306,6 +297,13 @@ namespace DynamicLOD_ResetEdition
 
             ResetFPSMode(false);
             FirstStart = false;
+        }
+        public float GetAverageFPS()
+        {
+            if (Model.MemoryAccess.IsFgModeActive())
+                return IPCManager.SimConnect.GetAverageFPS() * 2.0f;
+            else
+                return IPCManager.SimConnect.GetAverageFPS();
         }
     }
 }

@@ -59,16 +59,22 @@
     <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>750C28371E108F6798D938582F37D04F064DDD1A</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>BBBE9D07E0F8DB75A8B91438A6C03470F945C71F</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>Installer_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>ResetXPDR.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
     <SignManifests>false</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>ResetXPDR.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -139,11 +145,13 @@
     </EmbeddedResource>
     <EmbeddedResource Include="AppPackage.zip" />
     <EmbeddedResource Include="DynamicLOD_ResetEdition.config" />
+    <None Include="Installer_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="ResetXPDR.pfx" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="App.config" />

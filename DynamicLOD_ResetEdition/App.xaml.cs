@@ -32,6 +32,13 @@ namespace DynamicLOD_ResetEdition
                 return;
             }
 
+            if (Process.GetProcessesByName("DynamicLOD").Length > 0)
+            {
+                MessageBox.Show("A pre-ResetEdition version of DynamicLOD is already running!", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Application.Current.Shutdown();
+                return;
+            }
+
             Directory.SetCurrentDirectory(AppDir);
 
             if (!File.Exists(ConfigFile))
@@ -70,20 +77,23 @@ namespace DynamicLOD_ResetEdition
 
         protected override void OnExit(ExitEventArgs e)
         {
-            Model.CancellationRequested = true;
+            if (Model != null)
+            {
+                Model.CancellationRequested = true;
+                if (Model.DefaultSettingsRead && Model.IsSessionRunning)
+                {
+                    Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting LODs to {Model.DefaultTLOD} / {Model.DefaultOLOD} and VR {Model.DefaultTLOD_VR} / {Model.DefaultOLOD_VR}");
+                    Model.MemoryAccess.SetTLOD_PC(Model.DefaultTLOD);
+                    Model.MemoryAccess.SetTLOD_VR(Model.DefaultTLOD_VR);
+                    Model.MemoryAccess.SetOLOD_PC(Model.DefaultOLOD);
+                    Model.MemoryAccess.SetOLOD_VR(Model.DefaultOLOD_VR);
+                    Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting cloud quality to {Model.DefaultCloudQ} / VR {Model.DefaultCloudQ_VR}");
+                    Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ);
+                    Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR);
+                }
+            }
             notifyIcon?.Dispose();
             base.OnExit(e);
-            if (Model.DefaultSettingsRead && Model.IsSessionRunning)
-            {
-                Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting LODs to {Model.DefaultTLOD} / {Model.DefaultOLOD} and VR {Model.DefaultTLOD_VR} / {Model.DefaultOLOD_VR}");
-                Model.MemoryAccess.SetTLOD_PC(Model.DefaultTLOD);
-                Model.MemoryAccess.SetTLOD_VR(Model.DefaultTLOD_VR);
-                Model.MemoryAccess.SetOLOD_PC(Model.DefaultOLOD);
-                Model.MemoryAccess.SetOLOD_VR(Model.DefaultOLOD_VR);
-                Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting cloud quality to {Model.DefaultCloudQ} / VR {Model.DefaultCloudQ_VR}");
-                Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ);
-                Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR);
-            }
 
             Logger.Log(LogLevel.Information, "App:OnExit", "DynamicLOD_ResetEdition exiting ...");
         }

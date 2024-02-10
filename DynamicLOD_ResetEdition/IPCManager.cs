@@ -108,7 +108,7 @@ namespace DynamicLOD_ResetEdition
 
             if (!isReady)
             {
-                Logger.Log(LogLevel.Error, "IPCManager:WaitForSessionReady", $"SimConnect or Simulator not available - aborting");
+                Logger.Log(LogLevel.Information, "IPCManager:WaitForSessionReady", $"SimConnect or Simulator not available - aborting");
                 return false;
             }
 

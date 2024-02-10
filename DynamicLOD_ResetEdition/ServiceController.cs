@@ -97,7 +97,7 @@ namespace DynamicLOD_ResetEdition
             Model.DefaultOLOD =Model.MemoryAccess.GetOLOD_PC();
             Model.DefaultOLOD_VR = Model.MemoryAccess.GetOLOD_VR();
             Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Initial LODs PC {Model.DefaultTLOD} / {Model.DefaultOLOD} and VR {Model.DefaultTLOD_VR} / {Model.DefaultOLOD_VR}");
-            Model.DefaultCloudQ = Model.MemoryAccess.GetCloudQ();
+            Model.DefaultCloudQ = Model.MemoryAccess.GetCloudQ_PC();
             Model.DefaultCloudQ_VR = Model.MemoryAccess.GetCloudQ_VR();
             Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Initial cloud quality PC {Model.DefaultCloudQ} / VR {Model.DefaultCloudQ_VR}");
             Model.DefaultSettingsRead = true;

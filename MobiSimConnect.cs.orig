@@ -249,19 +249,16 @@ namespace DynamicLOD_ResetEdition
         {
             try
             {
-               // Disabled functionality due to spurious error messages for unknown reason
-               // If anyone knows what the possible issue is here, let me know!
-
-               //if (isMobiConnected)
-               //    SendClientWasmCmd("MF.SimVars.Clear");
+                if (isMobiConnected)
+                    SendClientWasmCmd("MF.SimVars.Clear");
 
                 cancelThread = true;
-                //if (simConnectThread != null)
-                //{
-                //    simConnectThread.Interrupt();
-                //    simConnectThread.Join(500);
-                //    simConnectThread = null;
-                //}
+                if (simConnectThread != null)
+                {
+                    simConnectThread.Interrupt();
+                    simConnectThread.Join(500);
+                    simConnectThread = null;
+                }
 
                 if (simConnect != null)
                 {
@@ -457,15 +454,6 @@ namespace DynamicLOD_ResetEdition
         {
             SendClientWasmCmd($"MF.SimVars.Set.{code}");
             SendClientWasmDummyCmd();
-        }
-
-        public int AltAboveGround(bool onGround)
-        {
-            int alt = (int)ReadSimVar("PLANE ALT ABOVE GROUND", "feet");
-            if (alt == 0 && onGround)
-                alt = (int)ReadSimVar("PLANE ALT ABOVE GROUND MINUS CG", "feet");
-
-            return alt;
         }
     }
 }
