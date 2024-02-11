@@ -17,6 +17,7 @@ using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 using System.Windows.Threading;
+using static System.Net.WebRequestMethods;
 
 namespace DynamicLOD_ResetEdition
 {
@@ -51,34 +52,34 @@ namespace DynamicLOD_ResetEdition
             };
             timer.Tick += OnTick;
 
-
-            int currentAppVersion = int.Parse(assemblyVersion.Replace(".", ""));
-            string latestAppVersion = GetFinalRedirect("https://github.com/ResetXPDR/DynamicLOD_ResetEdition/releases/latest");
-            if (latestAppVersion != null && latestAppVersion.Length > 5)
+            string latestAppVersionStr = GetFinalRedirect("https://github.com/ResetXPDR/DynamicLOD_ResetEdition/releases/latest");
+            lblappUrl.Visibility = Visibility.Hidden;
+            if (int.TryParse(assemblyVersion.Replace(".", ""), CultureInfo.InvariantCulture, out int currentAppVersion) &&  latestAppVersionStr != null && latestAppVersionStr.Length > 70)
+            { 
+                latestAppVersionStr = latestAppVersionStr.Substring(latestAppVersionStr.Length - 5, 5);
+                if (int.TryParse(latestAppVersionStr.Replace(".", ""), CultureInfo.InvariantCulture, out int LatestAppVersion))
                 { 
-                    latestAppVersion = latestAppVersion.Substring(latestAppVersion.Length - 5, 5);
-                    if ((serviceModel.TestVersion && int.Parse(latestAppVersion.Replace(".", "")) >= currentAppVersion)
-                        || int.Parse(latestAppVersion.Replace(".", "")) > currentAppVersion)
+                    if ((serviceModel.TestVersion && LatestAppVersion >= currentAppVersion) || LatestAppVersion > currentAppVersion)
                     {
-                        lblsimCompatible.Content = "Newer app version " + (latestAppVersion) + " now available";
+                        lblsimCompatible.Content = "Newer app version " + (latestAppVersionStr) + " now available";
                         lblsimCompatible.Foreground = new SolidColorBrush(Colors.Green);
                         lblappUrl.Visibility = Visibility.Visible;
                     }
                     else
                     {
-                    if (serviceModel.TestVersion)
+                        if (serviceModel.TestVersion)
                         {
-                        lblsimCompatible.Content = latestAppVersion + " version is latest formal release. Check link works";
-                        lblsimCompatible.Foreground = new SolidColorBrush(Colors.Green);
-                        lblappUrl.Visibility = Visibility.Visible;
+                            lblsimCompatible.Content = latestAppVersionStr + " version is latest formal release. Check link works";
+                            lblsimCompatible.Foreground = new SolidColorBrush(Colors.Green);
+                            lblappUrl.Visibility = Visibility.Visible;
                         }
-                    else
-                    {
-                        lblsimCompatible.Content = "Latest app version is installed";
-                        lblsimCompatible.Foreground = new SolidColorBrush(Colors.Green);
-                        lblappUrl.Visibility = Visibility.Hidden;
+                        else
+                        {
+                            lblsimCompatible.Content = "Latest app version is installed";
+                            lblsimCompatible.Foreground = new SolidColorBrush(Colors.Green);
+                        }
                     }
-                }
+                }   
             }
         }
         public static string GetFinalRedirect(string url)
