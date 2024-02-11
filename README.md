@@ -78,7 +78,7 @@ Some Notes:
   - Plus is Add, Minus is Remove, S is Set (Change). Remove and Set require to double-click the Pair first.
   - A Pair is selected (and the configured xLOD applied) when the current AGL is above the configured AGL. If the current AGL goes below the configured AGL, the next lower Pair will be selected.
   - A new Pair is only selected in Accordance to the VS Trend - i.e. a lower Pair won't be selected if you're actually Climbing (only the next higher)
-  - Many users are finding it better to reduce, not increase, OLOD values at higher altitudes as you can clearly see objects from such distances anyway, especially in VR.
+  - Many users are finding it better to reduce, not increase, OLOD values at higher altitudes as you can't clearly see objects from such distances anyway, especially in VR.
 - FPS Adaption:
   - Settings in the FPS adaption area only work if you have checked Limit LODs.
   - FPS Adaption will activate when your FPS is below the target FPS you have set, after any Delay start you have set.
