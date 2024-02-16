@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing.Printing;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DynamicLOD_ResetEdition
@@ -47,9 +48,9 @@ namespace DynamicLOD_ResetEdition
             Model.fpsMode = false;
             Model.tlod_step = false;
             Model.olod_step = false;
-    }
+        }
 
-    private void UpdateVariables()
+          private void UpdateVariables()
         {
             float vs = SimConnect.ReadSimVar("VERTICAL SPEED", "feet per second");
             Model.OnGround = SimConnect.ReadSimVar("SIM ON GROUND", "Bool") == 1.0f;

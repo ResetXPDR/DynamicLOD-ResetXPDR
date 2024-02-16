@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Linq;
 
 namespace DynamicLOD_ResetEdition
 {
@@ -143,6 +147,42 @@ namespace DynamicLOD_ResetEdition
 
                 SetSetting("ConfigVersion", Convert.ToString(BuildConfigVersion));
             }
+        }
+
+        public float GetGPUUsage()
+        {
+            try
+            {
+                var gpuCounters = GPUCounters();
+                var gpuUsage = GPUUsage(gpuCounters);
+                return gpuUsage;
+            }
+            catch { }
+            return 0;
+
+        }
+
+        public static List<PerformanceCounter> GPUCounters()
+        {
+            var category = new PerformanceCounterCategory("GPU Engine");
+            var counterNames = category.GetInstanceNames();
+
+            var gpuCounters = counterNames
+                                .Where(counterName => counterName.EndsWith("engtype_3D"))
+                                .SelectMany(counterName => category.GetCounters(counterName))
+                                .Where(counter => counter.CounterName.Equals("Utilization Percentage"))
+                                .ToList();
+
+            return gpuCounters;
+        }
+
+        public static float GPUUsage(List<PerformanceCounter> gpuCounters)
+        {
+            gpuCounters.ForEach(x => x.NextValue());
+
+            var result = gpuCounters.Sum(x => x.NextValue());
+
+            return result;
         }
 
         public static List<(float, float)> LoadPairs(string settings)

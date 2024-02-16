@@ -26,7 +26,7 @@ namespace DynamicLOD_ResetEdition
         protected NotifyIconViewModel notifyModel;
         protected ServiceModel serviceModel;
         protected DispatcherTimer timer;
-
+ 
         protected int editPairTLOD = -1;
         protected int editPairOLOD = -1;
 
@@ -210,13 +210,6 @@ namespace DynamicLOD_ResetEdition
             else return "n/a";
         }
 
-        protected float GetAverageFPS()
-        {
-            if (serviceModel.MemoryAccess != null && serviceModel.MemoryAccess.IsFgModeActive())
-                return IPCManager.SimConnect.GetAverageFPS() * 2.0f;
-            else
-                return IPCManager.SimConnect.GetAverageFPS();
-        }
         protected void UpdateLiveValues()
         {
             if (IPCManager.SimConnect != null && IPCManager.SimConnect.IsConnected)
@@ -296,6 +289,7 @@ namespace DynamicLOD_ResetEdition
             {
                 var simConnect = IPCManager.SimConnect;
                 lblPlaneAGL.Content = simConnect.ReadSimVar("PLANE ALT ABOVE GROUND", "feet").ToString("F0");
+                //lblPlaneVS.Content = (simConnect.ReadSimVar("VERTICAL SPEED", "feet per second") * 60.0f).ToString("F0") + " GPU:" + serviceModel.GetGPUUsage().ToString("F0");
                 lblPlaneVS.Content = (simConnect.ReadSimVar("VERTICAL SPEED", "feet per second") * 60.0f).ToString("F0");
                 if (serviceModel.OnGround)
                     lblVSTrend.Content = "Ground";
@@ -312,6 +306,14 @@ namespace DynamicLOD_ResetEdition
                 lblPlaneVS.Content = "n/a";
                 lblVSTrend.Content = "n/a";
             }
+        }
+
+        protected float GetAverageFPS()
+        {
+            if (serviceModel.MemoryAccess != null && serviceModel.MemoryAccess.IsFgModeActive())
+                return IPCManager.SimConnect.GetAverageFPS() * 2.0f;
+            else
+                return IPCManager.SimConnect.GetAverageFPS();
         }
 
         protected static void UpdateIndex(DataGrid grid, List<(float, float)> pairs, int index)

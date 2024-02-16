@@ -19,7 +19,8 @@ namespace DynamicLOD_ResetEdition
         private long addrCloudQ_VR;
         private long addrVrMode;
         private long addrFgMode;
-        private long offsetPointerAnsioFilter = 0x18;
+        private long offsetPointerAnsioFilter = -0x18;
+        private long offsetWaterWaves = 0x3C;
         private bool allowMemoryWrites = false;
         private bool isDX12 = false;
 
@@ -96,7 +97,8 @@ namespace DynamicLOD_ResetEdition
                 || GetOLOD_PC() < 10 || GetOLOD_PC() > 400 || GetOLOD_VR() < 10 || GetOLOD_VR() > 400
                 || GetCloudQ_PC() < 0 || GetCloudQ_PC() > 3 || GetCloudQ_VR() < 0 || GetCloudQ_VR() > 3
                 || MemoryInterface.ReadMemory<int>(addrVrMode) < 0 || MemoryInterface.ReadMemory<int>(addrVrMode) > 1
-                || MemoryInterface.ReadMemory<int>(addrTLOD - offsetPointerAnsioFilter) < 1 || MemoryInterface.ReadMemory<int>(addrTLOD - offsetPointerAnsioFilter) > 16)
+                || MemoryInterface.ReadMemory<int>(addrTLOD + offsetPointerAnsioFilter) < 1 || MemoryInterface.ReadMemory<int>(addrTLOD + offsetPointerAnsioFilter) > 16
+                || !(MemoryInterface.ReadMemory<int>(addrTLOD + offsetWaterWaves) == 128 || MemoryInterface.ReadMemory<int>(addrTLOD + offsetWaterWaves) == 256 || MemoryInterface.ReadMemory<int>(addrTLOD + offsetWaterWaves) == 512))
                 allowMemoryWrites = false;
             else allowMemoryWrites = true;
  
