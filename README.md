@@ -54,6 +54,7 @@ Some Notes:
   - Binary in %appdata%\DynamicLOD_ResetEdition\bin
   - Logs in %appdata%\DynamicLOD_ResetEdition\log
   - Config: %appdata%\DynamicLOD_ResetEdition\DynamicLOD_ResetEdition.config
+- If after installing and running the app your simconnect always stays red, try downloading and installing a Microsoft official version of “Microsoft Visual C++ 2015 - 2022 Redistributable”, which may be missing from your Windows installation.
 
 <br/><br/>
 
