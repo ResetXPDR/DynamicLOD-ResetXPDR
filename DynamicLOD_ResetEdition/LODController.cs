@@ -18,12 +18,8 @@ namespace DynamicLOD_ResetEdition
         private float[] verticalStatsVS = new float[5];
         private int verticalIndex = 0;
         private int altAboveGnd = 0;
-        private float tlod = 0;
         private float tlod_dec = 0;
-        private float olod = 0;
         private float olod_dec = 0;
-        private int cloudQ = 0;
-        private int cloudQ_VR = 0;
         public bool FirstStart { get; set; } = true;
         private int fpsModeTicks = 0;
         private int fpsModeDelayTicks = 0;
@@ -37,12 +33,7 @@ namespace DynamicLOD_ResetEdition
             SimConnect.SubscribeSimVar("PLANE ALT ABOVE GROUND", "feet");
             SimConnect.SubscribeSimVar("PLANE ALT ABOVE GROUND MINUS CG", "feet");
             SimConnect.SubscribeSimVar("SIM ON GROUND", "Bool");
-            tlod = Model.MemoryAccess.GetTLOD_PC();
-            olod = Model.MemoryAccess.GetOLOD_PC();
-            cloudQ = Model.MemoryAccess.GetCloudQ_PC();
-            cloudQ_VR = Model.MemoryAccess.GetCloudQ_VR();
-            if (cloudQ > Model.DefaultCloudQ) Model.DefaultCloudQ = cloudQ;
-            if (cloudQ_VR > Model.DefaultCloudQ_VR) Model.DefaultCloudQ_VR = cloudQ_VR;
+            GetMSFSState();
             Model.CurrentPairTLOD = 0;
             Model.CurrentPairOLOD = 0;
             Model.fpsMode = false;
@@ -72,10 +63,7 @@ namespace DynamicLOD_ResetEdition
             if (altAboveGnd == 0 && !Model.OnGround)
                 altAboveGnd = (int)SimConnect.ReadSimVar("PLANE ALT ABOVE GROUND MINUS CG", "feet");
 
-            tlod = Model.MemoryAccess.GetTLOD_PC();
-            olod = Model.MemoryAccess.GetOLOD_PC();
-            cloudQ = Model.MemoryAccess.GetCloudQ_PC();
-            cloudQ_VR = Model.MemoryAccess.GetCloudQ_VR();
+            GetMSFSState();
         }
 
         public void RunTick()
@@ -92,93 +80,99 @@ namespace DynamicLOD_ResetEdition
 
             if (Model.ForceEvaluation) FindPairs();
 
-            if (Model.UseTargetFPS)
+            if ((Model.ActiveWindowMSFS || !Model.PauseMSFSFocusLost) && Model.FPSSettleCounter == 0)
             {
-                if (GetAverageFPS() < Model.TargetFPS)
+                if (Model.UseTargetFPS)
                 {
-                    if (!Model.fpsMode)
+                    if (GetAverageFPS() < Model.TargetFPS)
                     {
-                        if (fpsModeDelayTicks >= Model.ConstraintDelayTicks)
+                        if (!Model.fpsMode)
                         {
-                            Logger.Log(LogLevel.Information, "LODController:RunTick", $"FPS Constraint active");
-                            Model.fpsMode = true;
-                            if (Model.DecCloudQ && Model.DefaultCloudQ >= 1)
+                            if (fpsModeDelayTicks >= Model.ConstraintDelayTicks)
                             {
-                                Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ - 1);
+                                Logger.Log(LogLevel.Information, "LODController:RunTick", $"FPS Constraint active");
+                                Model.fpsMode = true;
+                                if (Model.DecCloudQ && Model.DefaultCloudQ >= 1)
+                                {
+                                    Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ - 1);
+                                }
+                                if (Model.DecCloudQ && Model.DefaultCloudQ_VR >= 1)
+                                {
+                                    Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR - 1);
+                                }
+                                tlod_dec = Model.DecreaseTLOD;
+                                olod_dec = Model.DecreaseOLOD;
+                                fpsModeDelayTicks = 0;
                             }
-                            if (Model.DecCloudQ && Model.DefaultCloudQ_VR >= 1)
-                            {
-                                Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR - 1);
-                            }
-                            tlod_dec = Model.DecreaseTLOD;
-                            olod_dec = Model.DecreaseOLOD;
-                            fpsModeDelayTicks = 0;
+                            else fpsModeDelayTicks++;
                         }
-                        else fpsModeDelayTicks++;                    }
+                    }
+                    else if (GetAverageFPS() > Model.TargetFPS + (Model.DecCloudQ ? Model.CloudRecoveryFPS : 0) && Model.fpsMode)
+                    {
+                        fpsModeTicks++;
+                        if (fpsModeTicks > Model.ConstraintTicks || Model.ForceEvaluation)
+                            ResetFPSMode();
+                    }
+                    else fpsModeDelayTicks = 0;
                 }
-                else if (GetAverageFPS() > Model.TargetFPS + (Model.DecCloudQ ? Model.CloudRecoveryFPS : 0) && Model.fpsMode) 
-                {
-                    fpsModeTicks++;
-                    if (fpsModeTicks > Model.ConstraintTicks || Model.ForceEvaluation)
-                        ResetFPSMode();
-                }
-                else fpsModeDelayTicks = 0;
-            }
-            else if (!Model.UseTargetFPS && Model.fpsMode)
-                ResetFPSMode();
+                else if (!Model.UseTargetFPS && Model.fpsMode)
+                    ResetFPSMode();
 
-            float evalResult = EvaluateLodPairByHeight(ref Model.CurrentPairTLOD, Model.PairsTLOD[Model.SelectedProfile]);
-            if (VerticalAverage() > 0 && Model.CurrentPairTLOD + 1 < Model.PairsTLOD[Model.SelectedProfile].Count)
-                Model.AltLead = Math.Abs(Model.PairsTLOD[Model.SelectedProfile][Model.CurrentPairTLOD + 1].Item2 - Model.PairsTLOD[Model.SelectedProfile][Model.CurrentPairTLOD].Item2) / Model.LodStepMaxInc * VSAverage();
-            else if (VerticalAverage() < 0 && Model.CurrentPairTLOD - 1 >= 0)
-                Model.AltLead = Math.Abs(Model.PairsTLOD[Model.SelectedProfile][Model.CurrentPairTLOD].Item2 - Model.PairsTLOD[Model.SelectedProfile][Model.CurrentPairTLOD - 1].Item2) / Model.LodStepMaxDec * VSAverage();
-            else Model.AltLead = 0;
-            float newlod = EvaluateLodValue(Model.PairsTLOD[Model.SelectedProfile], Model.CurrentPairTLOD, tlod_dec, true);
-            if (tlod != newlod)
-            {
-                if (evalResult > 0) Logger.Log(LogLevel.Information, "LODController:RunTick", $"Setting TLOD {newlod}" + (Model.LodStepMax ? " in steps" : ""));
-                if (!Model.ForceEvaluation)
+                float evalResult = EvaluateLodPairByHeight(ref Model.CurrentPairTLOD, Model.PairsTLOD[Model.SelectedProfile]);
+                if (VerticalAverage() > 0 && Model.CurrentPairTLOD + 1 < Model.PairsTLOD[Model.SelectedProfile].Count)
+                    Model.AltLead = Math.Abs(Model.PairsTLOD[Model.SelectedProfile][Model.CurrentPairTLOD + 1].Item2 - Model.PairsTLOD[Model.SelectedProfile][Model.CurrentPairTLOD].Item2) / Model.LodStepMaxInc * VSAverage();
+                else if (VerticalAverage() < 0 && Model.CurrentPairTLOD - 1 >= 0)
+                    Model.AltLead = Math.Abs(Model.PairsTLOD[Model.SelectedProfile][Model.CurrentPairTLOD].Item2 - Model.PairsTLOD[Model.SelectedProfile][Model.CurrentPairTLOD - 1].Item2) / Model.LodStepMaxDec * VSAverage();
+                else Model.AltLead = 0;
+                float newlod = EvaluateLodValue(Model.PairsTLOD[Model.SelectedProfile], Model.CurrentPairTLOD, tlod_dec, true);
+                if (Model.tlod != newlod)
                 {
-                    Model.tlod_step = true;
-                    if (tlod > newlod)
+                    if (evalResult > 0) Logger.Log(LogLevel.Information, "LODController:RunTick", $"Setting TLOD {newlod}" + (Model.LodStepMax ? " in steps" : ""));
+                    if (!Model.ForceEvaluation)
                     {
-                        if (tlod - Model.LodStepMaxDec > newlod) newlod = tlod - Model.LodStepMaxDec;
-                        else Model.tlod_step = false;
+                        Model.tlod_step = true;
+                        if (Model.tlod > newlod)
+                        {
+                            if (Model.tlod - Model.LodStepMaxDec > newlod) newlod = Model.tlod - Model.LodStepMaxDec;
+                            else Model.tlod_step = false;
+                        }
+                        else
+                        {
+                            if (Model.tlod + Model.LodStepMaxInc < newlod) newlod = Model.tlod + Model.LodStepMaxInc;
+                            else Model.tlod_step = false;
+                        }
                     }
-                    else
-                    {
-                        if (tlod + Model.LodStepMaxInc < newlod) newlod = tlod + Model.LodStepMaxInc;
-                        else Model.tlod_step = false;
-                    }
+                    Model.MemoryAccess.SetTLOD(newlod);
                 }
-                Model.MemoryAccess.SetTLOD(newlod);
-            }
-            else Model.tlod_step = false;
+                else Model.tlod_step = false;
 
-            evalResult = EvaluateLodPairByHeight(ref Model.CurrentPairOLOD, Model.PairsOLOD[Model.SelectedProfile]);
-            newlod = EvaluateLodValue(Model.PairsOLOD[Model.SelectedProfile], Model.CurrentPairOLOD, olod_dec, false);
-            if (olod != newlod)
-            {
-                if (evalResult > 0) Logger.Log(LogLevel.Information, "LODController:RunTick", $"Setting OLOD {newlod}" + (Model.LodStepMax ? " in steps" : ""));
-                if (!Model.ForceEvaluation)
+                evalResult = EvaluateLodPairByHeight(ref Model.CurrentPairOLOD, Model.PairsOLOD[Model.SelectedProfile]);
+                newlod = EvaluateLodValue(Model.PairsOLOD[Model.SelectedProfile], Model.CurrentPairOLOD, olod_dec, false);
+                if (Model.olod != newlod)
                 {
-                    Model.olod_step = true;
-                    if (olod > newlod)
+                    if (evalResult > 0) Logger.Log(LogLevel.Information, "LODController:RunTick", $"Setting OLOD {newlod}" + (Model.LodStepMax ? " in steps" : ""));
+                    if (!Model.ForceEvaluation)
                     {
-                        if (olod - Model.LodStepMaxDec > newlod) newlod = olod - Model.LodStepMaxDec;
-                        else Model.olod_step = false;
+                        Model.olod_step = true;
+                        if (Model.olod > newlod)
+                        {
+                            if (Model.olod - Model.LodStepMaxDec > newlod) newlod = Model.olod - Model.LodStepMaxDec;
+                            else Model.olod_step = false;
+                        }
+                        else
+                        {
+                            if (Model.olod + Model.LodStepMaxInc < newlod) newlod = Model.olod + Model.LodStepMaxInc;
+                            else Model.olod_step = false;
+                        }
                     }
-                    else
-                    {
-                        if (olod + Model.LodStepMaxInc < newlod) newlod = olod + Model.LodStepMaxInc;
-                        else Model.olod_step = false;
-                    }
+                    Model.MemoryAccess.SetOLOD(newlod);
                 }
-                Model.MemoryAccess.SetOLOD(newlod);
+                else Model.olod_step = false;
+
+                Model.ForceEvaluation = false;
             }
-            else Model.olod_step = false;
-            
-            Model.ForceEvaluation = false;
+            else if (--Model.FPSSettleCounter < 0) Model.FPSSettleCounter = 0;
+
         }
 
         private float EvaluateLodValue(List<(float, float)> pairs, int currentPair, float decrement, bool tlod)
@@ -247,7 +241,7 @@ namespace DynamicLOD_ResetEdition
 
         private void FindPairs()
         {
-            Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Finding Pairs (onGround: {Model.OnGround} | tlod: {tlod} | olod: {olod})");
+            Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Finding Pairs (onGround: {Model.OnGround} | tlod: {Model.tlod} | olod: {Model.olod})");
 
             if (!Model.OnGround)
             {
@@ -259,7 +253,7 @@ namespace DynamicLOD_ResetEdition
                 }
                 Model.CurrentPairTLOD = result;
                 Logger.Log(LogLevel.Information, "LODController:FindPairs", $"TLOD Index {result}");
-                if (Model.ForceEvaluation || tlod != Model.PairsTLOD[Model.SelectedProfile][result].Item2)
+                if (Model.ForceEvaluation || Model.tlod != Model.PairsTLOD[Model.SelectedProfile][result].Item2)
                 {
                     Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Setting TLOD {Model.PairsTLOD[Model.SelectedProfile][result].Item2}");
                     Model.MemoryAccess.SetTLOD(Model.PairsTLOD[Model.SelectedProfile][result].Item2);
@@ -273,7 +267,7 @@ namespace DynamicLOD_ResetEdition
                 }
                 Model.CurrentPairOLOD = result;
                 Logger.Log(LogLevel.Information, "LODController:FindPairs", $"OLOD Index {result}");
-                if (Model.ForceEvaluation || olod != Model.PairsOLOD[Model.SelectedProfile][result].Item2)
+                if (Model.ForceEvaluation || Model.olod != Model.PairsOLOD[Model.SelectedProfile][result].Item2)
                 {
                     Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Setting OLOD {Model.PairsOLOD[Model.SelectedProfile][result].Item2}");
                     Model.MemoryAccess.SetOLOD(Model.PairsOLOD[Model.SelectedProfile][result].Item2);
@@ -283,13 +277,13 @@ namespace DynamicLOD_ResetEdition
             {
                 int result = 0;
                 Model.CurrentPairTLOD = result;
-                if (Model.ForceEvaluation || tlod != Model.PairsTLOD[Model.SelectedProfile][result].Item2)
+                if (Model.ForceEvaluation || Model.tlod != Model.PairsTLOD[Model.SelectedProfile][result].Item2)
                 {
                     Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Setting TLOD {Model.PairsTLOD[Model.SelectedProfile][result].Item2}");
                     Model.MemoryAccess.SetTLOD(Model.PairsTLOD[Model.SelectedProfile][result].Item2);
                 }
                 Model.CurrentPairOLOD = result;
-                if (Model.ForceEvaluation || olod != Model.PairsOLOD[Model.SelectedProfile][result].Item2)
+                if (Model.ForceEvaluation || Model.olod != Model.PairsOLOD[Model.SelectedProfile][result].Item2)
                 {
                     Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Setting OLOD {Model.PairsOLOD[Model.SelectedProfile][result].Item2}");
                     Model.MemoryAccess.SetOLOD(Model.PairsOLOD[Model.SelectedProfile][result].Item2);
@@ -301,10 +295,31 @@ namespace DynamicLOD_ResetEdition
         }
         public float GetAverageFPS()
         {
-            if (Model.MemoryAccess.IsFgModeActive())
+            if (Model.FgModeActive)
                 return IPCManager.SimConnect.GetAverageFPS() * 2.0f;
             else
                 return IPCManager.SimConnect.GetAverageFPS();
         }
+        private void GetMSFSState()
+        {
+            Model.tlod = Model.MemoryAccess.GetTLOD_PC();
+            Model.olod = Model.MemoryAccess.GetOLOD_PC();
+            Model.cloudQ = Model.MemoryAccess.GetCloudQ_PC();
+            Model.cloudQ_VR = Model.MemoryAccess.GetCloudQ_VR();
+            Model.VrModeActive = Model.MemoryAccess.IsVrModeActive();
+            Model.FgModeActive = Model.MemoryAccess.IsFgModeActive();
+            if (Model.ActiveWindowMSFS != Model.MemoryAccess.IsActiveWindowMSFS() && Model.PauseMSFSFocusLost) Model.FPSSettleCounter = ServiceModel.FPSSettleSeconds;
+            Model.ActiveWindowMSFS = Model.MemoryAccess.IsActiveWindowMSFS();
+            string ActiveGraphicsMode = Model.ActiveGraphicsMode;
+            if (Model.VrModeActive) Model.ActiveGraphicsMode = "VR";
+            else if (Model.FgModeActive) Model.ActiveGraphicsMode = "FG";
+            else Model.ActiveGraphicsMode = "PC";
+            if (Model.ActiveGraphicsMode != ActiveGraphicsMode)
+            {
+                Model.FPSSettleCounter = ServiceModel.FPSSettleSeconds;
+                Model.ActiveGraphicsModeChanged = true;
+            }
+        }
+
     }
 }

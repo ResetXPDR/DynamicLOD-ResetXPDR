@@ -27,6 +27,12 @@ namespace DynamicLOD_ResetEdition
         public bool ForceEvaluation { get; set; } = false;
 
         public int SelectedProfile { get; set; } = 0;
+        public string ProfileName1 { get; set; }
+        public string ProfileName2 { get; set; }
+        public string ProfileName3 { get; set; }
+        public string ProfileName4 { get; set; }
+        public string ProfileName5 { get; set; }
+        public string ProfileName6 { get; set; }
         public List<List<(float, float)>> PairsTLOD { get; set; }
         public int CurrentPairTLOD;
         public List<List<(float, float)>> PairsOLOD { get; set; }
@@ -34,6 +40,9 @@ namespace DynamicLOD_ResetEdition
         public bool fpsMode { get; set; }
         public bool UseTargetFPS { get; set; }
         public int TargetFPS { get; set; }
+        public int TargetFPS_PC { get; set; }
+        public int TargetFPS_VR { get; set; }
+        public int TargetFPS_FG { get; set; }
         public int CloudRecoveryFPS { get; set; }
         public int ConstraintTicks { get; set; }
         public int ConstraintDelayTicks { get; set; }
@@ -59,6 +68,19 @@ namespace DynamicLOD_ResetEdition
         public static int MfLvarsPerFrame { get; set; }
         public bool WaitForConnect { get; set; }
         public bool OpenWindow { get; set; }
+        public bool PauseMSFSFocusLost { get; set; } = false;
+        public bool VrModeActive { get; set; }
+        public bool FgModeActive { get; set; }
+        public bool ActiveWindowMSFS { get; set; }
+        public string ActiveGraphicsMode { get; set; } = "PC";
+        public bool ActiveGraphicsModeChanged { get; set; } = false;
+
+        public const int FPSSettleSeconds = 6;
+        public int FPSSettleCounter { get; set; } = FPSSettleSeconds;
+        public float tlod { get; set; } = 0;
+        public float olod { get; set; } = 0;
+        public int cloudQ { get; set; }
+        public int cloudQ_VR { get; set; }
         public bool CruiseLODUpdates { get; set; }
         public bool DecCloudQ { get; set; }
         public bool LodStepMax { get; set; }
@@ -88,18 +110,23 @@ namespace DynamicLOD_ResetEdition
         {
             ConfigurationFile.LoadConfiguration();
 
-            //TestVersion = true;
             LogLevel = Convert.ToString(ConfigurationFile.GetSetting("logLevel", "Debug"));
             MfLvarsPerFrame = Convert.ToInt32(ConfigurationFile.GetSetting("mfLvarPerFrame", "15"));
             ConfigVersion = Convert.ToInt32(ConfigurationFile.GetSetting("ConfigVersion", "1"));
             WaitForConnect = Convert.ToBoolean(ConfigurationFile.GetSetting("waitForConnect", "true"));
             OpenWindow = Convert.ToBoolean(ConfigurationFile.GetSetting("openWindow", "true"));
+            PauseMSFSFocusLost = Convert.ToBoolean(ConfigurationFile.GetSetting("PauseMSFSFocusLost", "false"));
             CruiseLODUpdates = Convert.ToBoolean(ConfigurationFile.GetSetting("CruiseLODUpdates", "false"));
             DecCloudQ = Convert.ToBoolean(ConfigurationFile.GetSetting("DecCloudQ", "false"));
             SimBinary = Convert.ToString(ConfigurationFile.GetSetting("simBinary", "FlightSimulator"));
             SimModule = Convert.ToString(ConfigurationFile.GetSetting("simModule", "WwiseLibPCx64P.dll"));
             UseTargetFPS = Convert.ToBoolean(ConfigurationFile.GetSetting("useTargetFps", "true"));
-            TargetFPS = Convert.ToInt32(ConfigurationFile.GetSetting("targetFps", "40"));
+            TargetFPS_PC = Convert.ToInt32(ConfigurationFile.GetSetting("targetFpsPC", "30"));
+            TargetFPS_VR = Convert.ToInt32(ConfigurationFile.GetSetting("targetFpsVR", "30"));
+            TargetFPS_FG = Convert.ToInt32(ConfigurationFile.GetSetting("targetFpsFG", "30"));
+            if (ActiveGraphicsMode == "VR") TargetFPS = TargetFPS_VR;
+            else if (ActiveGraphicsMode == "FG") TargetFPS = TargetFPS_FG;
+            else TargetFPS = TargetFPS_PC;
             CloudRecoveryFPS = Convert.ToInt32(ConfigurationFile.GetSetting("CloudRecoveryFPS", "0"));
             ConstraintTicks = Convert.ToInt32(ConfigurationFile.GetSetting("constraintTicks", "60"));
             ConstraintDelayTicks = Convert.ToInt32(ConfigurationFile.GetSetting("constraintDelayTicks", "1"));
@@ -128,6 +155,12 @@ namespace DynamicLOD_ResetEdition
             }
  
             SelectedProfile = Convert.ToInt32(ConfigurationFile.GetSetting("selectedProfile", "0"));
+            ProfileName1 = Convert.ToString(ConfigurationFile.GetSetting("profileName1", "1"));
+            ProfileName2 = Convert.ToString(ConfigurationFile.GetSetting("profileName2", "2"));
+            ProfileName3 = Convert.ToString(ConfigurationFile.GetSetting("profileName3", "3"));
+            ProfileName4 = Convert.ToString(ConfigurationFile.GetSetting("profileName4", "4"));
+            ProfileName5 = Convert.ToString(ConfigurationFile.GetSetting("profileName5", "5"));
+            ProfileName6 = Convert.ToString(ConfigurationFile.GetSetting("profileName6", "6"));
             PairsTLOD = new();
             PairsOLOD = new();
 

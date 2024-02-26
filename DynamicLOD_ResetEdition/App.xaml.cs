@@ -39,6 +39,13 @@ namespace DynamicLOD_ResetEdition
                 return;
             }
 
+            if (Process.GetProcessesByName("MSFS2020_AutoFPS").Length > 0)
+            {
+                MessageBox.Show("MSFS2020_AutoFPS is already running!", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Application.Current.Shutdown();
+                return;
+            }
+
             Directory.SetCurrentDirectory(AppDir);
 
             if (!File.Exists(ConfigFile))
@@ -122,7 +129,9 @@ namespace DynamicLOD_ResetEdition
                 loggerConfiguration.MinimumLevel.Information();
             Log.Logger = loggerConfiguration.CreateLogger();
             Log.Information($"-----------------------------------------------------------------------");
-            Logger.Log(LogLevel.Information, "App:InitLog", $"DynamicLOD_ResetEdition started! Log Level: {logLevel} Log File: {logFilePath}");
+            string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            assemblyVersion = assemblyVersion[0..assemblyVersion.LastIndexOf('.')];
+            Logger.Log(LogLevel.Information, "App:InitLog", $"DynamicLOD_ResetEdition v{assemblyVersion} started! Log Level: {logLevel} Log File: {logFilePath}");
         }
 
         protected void InitSystray()

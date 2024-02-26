@@ -88,7 +88,7 @@
                     <GroupBox.Header>FPS Adaption</GroupBox.Header>
                     <StackPanel Orientation="Vertical">
                         <StackPanel Orientation="Horizontal">
-                            <CheckBox Name="chkUseTargetFPS" VerticalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Click="chkUseTargetFPS_Click">Limit LODs when below Target Average FPS:</CheckBox>
+                            <CheckBox Name="chkUseTargetFPS" VerticalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Click="chkUseTargetFPS_Click">Limit LODs when below Target PC FPS:</CheckBox>
                             <TextBox Name="txtTargetFPS" Margin="8,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp"></TextBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -130,10 +130,13 @@
                         </Grid.RowDefinitions>
                         <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0">
                             <Label VerticalContentAlignment="Center">Use Profile</Label>
-                            <ComboBox Name="cbProfile" SelectionChanged="cbProfile_SelectionChanged" MinWidth="48" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"></ComboBox>
+                            <ComboBox Name="cbProfile" SelectionChanged="cbProfile_SelectionChanged" MinWidth="48" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                             <CheckBox x:Name="chkCruiseLODUpdates" VerticalContentAlignment="Center" Click="chkCruiseLODUpdates_Click" Width="139" Content="Cruise LOD Updates" Checked="chkCruiseLODUpdates_Checked" Margin="10,0,1,0" Padding="4,-1,0,0"/>
                         </StackPanel>
-                        <CheckBox Grid.Row="0" Grid.Column="1" Name="chkOpenWindow" Margin="6" VerticalContentAlignment="Center" Click="chkOpenWindow_Click">Open Window on App Start</CheckBox>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
+                            <CheckBox Name="chkOpenWindow" Margin="6" VerticalContentAlignment="Center" Click="chkOpenWindow_Click">Open Window on App Start</CheckBox>
+                        <CheckBox x:Name="chkPauseMSFSFocusLost" VerticalContentAlignment="Center" Click="chkPauseMSFSFocusLost_Click" Width="200" Content="Pause when MSFS loses focus" Checked="chkPauseMSFSFocusLost_Checked" Padding="4,0,0,0" Margin="5,0,0,0"/>
+                        </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,8,0,0">
                             <CheckBox x:Name="chkLodStepMax" VerticalContentAlignment="Center" Click="chkLodStepMax_Click" Width="97" Content="LOD Step Max" Checked="chkLodStepMax_Checked"/>
                             <Label Name="lblLodStepMax" VerticalContentAlignment="Center" Width="114" Padding="1,5,0,5">on Increase/Decrease</Label>
@@ -141,8 +144,7 @@
                             <TextBox x:Name="txtLodStepMaxDec" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" TextChanged="txtLodStepMaxDec_TextChanged" Margin="2,0,5,0"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
-                            <Label Name="lblIsVR" MinWidth="50" VerticalContentAlignment="Center" Content=""/>
-                            <Label x:Name="lblsimCompatible" MinWidth="50" VerticalContentAlignment="Center" Content=""/>
+                            <Label x:Name="lblStatusMessage" MinWidth="50" VerticalContentAlignment="Center" Content=""/>
                             <TextBlock x:Name="lblappUrl" VerticalAlignment="Center"> <Hyperlink NavigateUri="https://github.com/ResetXPDR/DynamicLOD_ResetEdition/releases/latest" RequestNavigate="Hyperlink_RequestNavigate">
                                 here</Hyperlink>
                             </TextBlock>
@@ -163,6 +165,7 @@
                         <Button Name="btnTlodChange" Margin="12,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" Width="24" Click="btnTlodChange_Click">S</Button>
                         <Button Name="btnTlodAdd" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" Width="24" Click="btnTlodAdd_Click">+</Button>
                         <Button Name="btnTlodRemove" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" Width="24" Click="btnTlodRemove_Click">-</Button>
+
                     </StackPanel>
                     <DataGrid Name="dgTlodPairs" Width="196" Margin="0,8,0,0" HorizontalAlignment="Center" IsReadOnly="True" AutoGenerateColumns="False"
                               CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" CanUserSortColumns="False" CanUserResizeColumns="False" CanUserResizeRows="False"
