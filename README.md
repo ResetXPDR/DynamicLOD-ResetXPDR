@@ -12,7 +12,7 @@ This utility builds upon the functionality provided in DynamicLOD, which aims to
 - Automatic FPS settling timer on MSFS graphics mode and focus changes to allow FPS to stabilise before being acted upon,<br/>
 - Auto future MSFS version compatibility, provided MSFS memory changes are like in previous updates,<br/>
 - Update prompt if newer utility version found on startup,<br/>
-- Profile naming, but ony through editing of the config file at this time,<br/> 
+- Profile naming, but only through editing of the config file at this time,<br/> 
 - Auto restoration of original settings changed by the utility,<br/>
 - Streamlined log entries,<br/> 
 - Removal of redundant features, and<br/>
