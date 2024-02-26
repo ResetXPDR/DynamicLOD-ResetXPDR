@@ -77,7 +77,7 @@ Some Notes:
   - Red values mean FPS Adaption is active, orange means LOD stepping is active, black means steady state, n/a means not available right now.
 - General
   - You can have (exactly) six different Sets/Profiles for the AGL/LOD Pairs to switch between (manually but dynamically).
-  - If you wish to have custom profile names, you will need to manually edit the config file for these items after running the new app version at least once, eg. <add key="profileName1" value="IFR" />.
+  - If you wish to have custom profile names, you will need to manually edit the config file for these items after running the new app version at least once, eg. &lt;add key="profileName1" value="IFR" /&gt;.
   - Cruise LOD Updates, when checked, will continue to update LOD values based on AGL in the cruise phase, which is useful for VFR flights over undulating terrain and has an otherwise negligble impact on high level or IFR flights so it is recommended to enable this.
   - LOD Step Max, when checked, allows the utility to slow the rate of change in LOD per second, with increase and decrease being individually settable, to smooth out LOD table changes. This allows you to have large steps in your LOD tables without experiencing abrupt changes like having it disabled would do, hence it is recommended to turn it on and start out with the default steps of 5.
   - App status area in the bottom right will display messages depending on connection status about new utility updates, compatibility test failures, PC or VR mode and whether Frame Generation is currently active (MSFS must have the focus for this to display FG FPS correctly). 
