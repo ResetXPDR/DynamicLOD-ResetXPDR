@@ -3,14 +3,16 @@
 Based on muumimorko's idea and code in MSFS_AdaptiveLOD, as further developed by Fragtality in DynamicLOD.<br/><br/>
 
 This utility builds upon the functionality provided in DynamicLOD, which aims to improve MSFS performance and smoothness by dynamically changing the TLOD and OLOD based on the current AGL, and provides additonal features such as:<br/>
-- Simultaneous PC and VR mode compatibilty,<br/>
+- Simultaneous PC, FG and VR mode compatibilty including correct FG FPS display and separate FPS targets for each mode,<br/>
 - Optional LOD updates in cruise,<br/> 
 - Optional predictive incremental steps between LOD changes to improve smoothness,<br/>
 - Optional cloud quality decrease with FPS Adaption,<br/>
 - Enhanced FPS Adaption control,<br/>
-- Correct display of FPS with Frame Generation active,<br/> 
+- Automatic pause when MSFS loses focus option, particularly useful if using FG due to varying FPS when MSFS gains or loses focus,<br/>
+- Automatic FPS settling timer on MSFS graphics mode and focus changes to allow FPS to stabilise before being acted upon,<br/>
 - Auto future MSFS version compatibility, provided MSFS memory changes are like in previous updates,<br/>
 - Update prompt if newer utility version found on startup,<br/>
+- Profile naming, but ony through editing of the config file at this time,<br/> 
 - Auto restoration of original settings changed by the utility,<br/>
 - Streamlined log entries,<br/> 
 - Removal of redundant features, and<br/>
