@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace DynamicLOD_ResetEdition
@@ -91,45 +92,65 @@ namespace DynamicLOD_ResetEdition
         {
             Model.MemoryAccess = new MemoryManager(Model);
             var lodController = new LODController(Model);
-            Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Starting Service Loop");
-            Model.DefaultTLOD = Model.MemoryAccess.GetTLOD_PC();
-            Model.DefaultTLOD_VR = Model.MemoryAccess.GetTLOD_VR();
-            Model.DefaultOLOD =Model.MemoryAccess.GetOLOD_PC();
-            Model.DefaultOLOD_VR = Model.MemoryAccess.GetOLOD_VR();
-            Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Initial LODs PC {Model.DefaultTLOD} / {Model.DefaultOLOD} and VR {Model.DefaultTLOD_VR} / {Model.DefaultOLOD_VR}");
-            Model.DefaultCloudQ = Model.MemoryAccess.GetCloudQ_PC();
-            Model.DefaultCloudQ_VR = Model.MemoryAccess.GetCloudQ_VR();
-            Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Initial cloud quality PC {Model.DefaultCloudQ} / VR {Model.DefaultCloudQ_VR}");
-            Model.DefaultSettingsRead = true;
-            while (!Model.CancellationRequested && IPCManager.IsSimRunning() && IPCManager.IsCamReady())
+            if (Model.MemoryAccess.MemoryWritesAllowed())
             {
-                try
+                Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Starting Service Loop");
+                if (Model.ConfigurationFile.SettingExists("defaultTLOD"))
                 {
-                    lodController.RunTick();
+                    Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "MSFS or MSFS2020_AutoFPS did not exit properly last session. Getting default MSFS settings from MSFS2020_AutoFPS config file.");
                 }
-                catch (Exception ex)
+                else Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Normal startup detected. Getting default MSFS settings from MSFS.");
+                Model.DefaultTLOD = Convert.ToSingle(Model.ConfigurationFile.GetSetting("defaultTLOD", Model.MemoryAccess.GetTLOD_PC().ToString("F0")));
+                Model.DefaultTLOD_VR = Convert.ToSingle(Model.ConfigurationFile.GetSetting("defaultTLOD_VR", Model.MemoryAccess.GetTLOD_VR().ToString("F0")));
+                Model.DefaultOLOD = Convert.ToSingle(Model.ConfigurationFile.GetSetting("defaultOLOD", Model.MemoryAccess.GetOLOD_PC().ToString("F0")));
+                Model.DefaultOLOD_VR = Convert.ToSingle(Model.ConfigurationFile.GetSetting("defaultOLOD_VR", Model.MemoryAccess.GetOLOD_VR().ToString("F0")));
+                Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Initial LODs PC {Model.DefaultTLOD} / {Model.DefaultOLOD} and VR {Model.DefaultTLOD_VR} / {Model.DefaultOLOD_VR}");
+                Model.DefaultCloudQ = Model.cloudQ = Convert.ToInt32(Model.ConfigurationFile.GetSetting("defaultCloudQ", Model.MemoryAccess.GetCloudQ_PC().ToString("F0")));
+                Model.DefaultCloudQ_VR = Model.cloudQ_VR = Convert.ToInt32(Model.ConfigurationFile.GetSetting("defaultCloudQ_VR", Model.MemoryAccess.GetCloudQ_VR().ToString("F0")));
+                Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Initial cloud quality PC {ServiceModel.CloudQualityText(Model.DefaultCloudQ)} / VR {ServiceModel.CloudQualityText(Model.DefaultCloudQ_VR)}");
+                Model.DefaultSettingsRead = true;
+                Model.DetectGraphics();
+                while (!Model.CancellationRequested && IPCManager.IsSimRunning() && IPCManager.IsCamReady())
                 {
-                    Logger.Log(LogLevel.Critical, "ServiceController:ServiceLoop", $"Critical Exception during ServiceLoop() {ex.GetType()} {ex.Message} {ex.Source}");
+                    try
+                    {
+                        lodController.RunTick();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Critical, "ServiceController:ServiceLoop", $"Critical Exception during ServiceLoop() {ex.GetType()} {ex.Message} {ex.Source}");
+                    }
+                    Thread.Sleep(Interval);
                 }
-                Thread.Sleep(Interval);
+                Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "ServiceLoop ended");
+
+                if (true && IPCManager.IsSimRunning())
+                {
+                    Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Sim still running, resetting LODs to {Model.DefaultTLOD} / {Model.DefaultOLOD} and VR {Model.DefaultTLOD_VR} / {Model.DefaultOLOD_VR}");
+                    Model.MemoryAccess.SetTLOD_PC(Model.DefaultTLOD);
+                    Model.MemoryAccess.SetTLOD_VR(Model.DefaultTLOD_VR);
+                    Model.MemoryAccess.SetOLOD_PC(Model.DefaultOLOD);
+                    Model.MemoryAccess.SetOLOD_VR(Model.DefaultOLOD_VR);
+                    Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Sim still running, resetting cloud quality to {ServiceModel.CloudQualityText(Model.DefaultCloudQ)} / VR {ServiceModel.CloudQualityText(Model.DefaultCloudQ_VR)}");
+                    Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ);
+                    Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR);
+                    if (Model.MemoryAccess.GetTLOD_PC() == Model.DefaultTLOD) // As long as one setting restoration stuck
+                    {
+                        Model.ConfigurationFile.RemoveSetting("defaultTLOD");
+                        Model.ConfigurationFile.RemoveSetting("defaultTLOD_VR");
+                        Model.ConfigurationFile.RemoveSetting("defaultOLOD");
+                        Model.ConfigurationFile.RemoveSetting("defaultOLOD_VR");
+                        Model.ConfigurationFile.RemoveSetting("defaultCloudQ");
+                        Model.ConfigurationFile.RemoveSetting("defaultCloudQ_VR");
+                        Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Default MSFS settings reset successful. Removed back up default MSFS settings from MSFS2020_AutoFPS config file.");
+                    }
+                    else Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Default MSFS settings reset failed. Retained back up default MSFS settings in MSFS2020_AutoFPS config file.");
+                }
+
+                Model.IsSessionRunning = false;
+
+                Model.MemoryAccess = null;
             }
-            Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "ServiceLoop ended");
-
-            if (true && IPCManager.IsSimRunning())
-            {
-                Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Sim still running, resetting LODs to {Model.DefaultTLOD} / {Model.DefaultOLOD} and VR {Model.DefaultTLOD_VR} / {Model.DefaultOLOD_VR}");
-                Model.MemoryAccess.SetTLOD_PC(Model.DefaultTLOD);
-                Model.MemoryAccess.SetTLOD_VR(Model.DefaultTLOD_VR);
-                Model.MemoryAccess.SetOLOD_PC(Model.DefaultOLOD);
-                Model.MemoryAccess.SetOLOD_VR(Model.DefaultOLOD_VR);
-                Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Sim still running, resetting cloud quality to {Model.DefaultCloudQ} / VR {Model.DefaultCloudQ_VR}");
-                Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ);
-                Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR);
-            }
-
-            Model.IsSessionRunning = false;
-
-            Model.MemoryAccess = null;
         }
     }
 }

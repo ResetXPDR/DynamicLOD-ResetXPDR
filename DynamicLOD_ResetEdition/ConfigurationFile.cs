@@ -33,6 +33,11 @@ namespace DynamicLOD_ResetEdition
 
             xmlDoc.Save(App.ConfigFile);
         }
+        public bool SettingExists(string key)
+        {
+            if (appSettings.ContainsKey(key)) return true;
+            else return false;
+        }
 
         public string GetSetting(string key, string defaultValue = "")
         {
@@ -55,6 +60,20 @@ namespace DynamicLOD_ResetEdition
                 SaveConfiguration();
 
                 return defaultValue;
+            }
+        }
+
+        public void RemoveSetting(string key)
+        {
+            if (appSettings.ContainsKey(key))
+            {
+                XmlNode nodeToRemove = xmlDoc.SelectSingleNode($"//add[@key='{key}']");
+                if (nodeToRemove != null)
+                {
+                    nodeToRemove.ParentNode.RemoveChild(nodeToRemove);
+                    appSettings.Remove(key);
+                    SaveConfiguration();
+                }
             }
         }
 

@@ -23,6 +23,7 @@ namespace DynamicLOD_ResetEdition
         public bool FirstStart { get; set; } = true;
         private int fpsModeTicks = 0;
         private int fpsModeDelayTicks = 0;
+        private int VRStateCounter = 5;
 
         public LODController(ServiceModel model)
         {
@@ -94,11 +95,11 @@ namespace DynamicLOD_ResetEdition
                                 Model.fpsMode = true;
                                 if (Model.DecCloudQ && Model.DefaultCloudQ >= 1)
                                 {
-                                    Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ - 1);
+                                    Model.MemoryAccess.SetCloudQ(Model.cloudQ = (Model.DefaultCloudQ - 1));
                                 }
                                 if (Model.DecCloudQ && Model.DefaultCloudQ_VR >= 1)
                                 {
-                                    Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR - 1);
+                                    Model.MemoryAccess.SetCloudQ_VR(Model.cloudQ_VR = (Model.DefaultCloudQ_VR - 1));
                                 }
                                 tlod_dec = Model.DecreaseTLOD;
                                 olod_dec = Model.DecreaseOLOD;
@@ -142,7 +143,7 @@ namespace DynamicLOD_ResetEdition
                             else Model.tlod_step = false;
                         }
                     }
-                    Model.MemoryAccess.SetTLOD(newlod);
+                    Model.MemoryAccess.SetTLOD(Model.tlod = newlod);
                 }
                 else Model.tlod_step = false;
 
@@ -165,7 +166,7 @@ namespace DynamicLOD_ResetEdition
                             else Model.olod_step = false;
                         }
                     }
-                    Model.MemoryAccess.SetOLOD(newlod);
+                    Model.MemoryAccess.SetOLOD(Model.olod = newlod);
                 }
                 else Model.olod_step = false;
 
@@ -193,8 +194,8 @@ namespace DynamicLOD_ResetEdition
             olod_dec = 0;
             if (Model.DecCloudQ || Model.ForceEvaluation)
             {
-                Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ);
-                Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR);
+                Model.MemoryAccess.SetCloudQ(Model.cloudQ = Model.DefaultCloudQ);
+                Model.MemoryAccess.SetCloudQ_VR(Model.cloudQ_VR = Model.DefaultCloudQ_VR);
             }
         }
 
@@ -256,7 +257,7 @@ namespace DynamicLOD_ResetEdition
                 if (Model.ForceEvaluation || Model.tlod != Model.PairsTLOD[Model.SelectedProfile][result].Item2)
                 {
                     Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Setting TLOD {Model.PairsTLOD[Model.SelectedProfile][result].Item2}");
-                    Model.MemoryAccess.SetTLOD(Model.PairsTLOD[Model.SelectedProfile][result].Item2);
+                    Model.MemoryAccess.SetTLOD(Model.tlod = Model.PairsTLOD[Model.SelectedProfile][result].Item2);
                 }
 
                 result = 0;
@@ -270,7 +271,7 @@ namespace DynamicLOD_ResetEdition
                 if (Model.ForceEvaluation || Model.olod != Model.PairsOLOD[Model.SelectedProfile][result].Item2)
                 {
                     Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Setting OLOD {Model.PairsOLOD[Model.SelectedProfile][result].Item2}");
-                    Model.MemoryAccess.SetOLOD(Model.PairsOLOD[Model.SelectedProfile][result].Item2);
+                    Model.MemoryAccess.SetOLOD(Model.olod = Model.PairsOLOD[Model.SelectedProfile][result].Item2);
                 }
             }
             else
@@ -280,13 +281,13 @@ namespace DynamicLOD_ResetEdition
                 if (Model.ForceEvaluation || Model.tlod != Model.PairsTLOD[Model.SelectedProfile][result].Item2)
                 {
                     Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Setting TLOD {Model.PairsTLOD[Model.SelectedProfile][result].Item2}");
-                    Model.MemoryAccess.SetTLOD(Model.PairsTLOD[Model.SelectedProfile][result].Item2);
+                    Model.MemoryAccess.SetTLOD(Model.tlod = Model.PairsTLOD[Model.SelectedProfile][result].Item2);
                 }
                 Model.CurrentPairOLOD = result;
                 if (Model.ForceEvaluation || Model.olod != Model.PairsOLOD[Model.SelectedProfile][result].Item2)
                 {
                     Logger.Log(LogLevel.Information, "LODController:FindPairs", $"Setting OLOD {Model.PairsOLOD[Model.SelectedProfile][result].Item2}");
-                    Model.MemoryAccess.SetOLOD(Model.PairsOLOD[Model.SelectedProfile][result].Item2);
+                    Model.MemoryAccess.SetOLOD(Model.olod = Model.PairsOLOD[Model.SelectedProfile][result].Item2);
                 }
             }
 
@@ -295,23 +296,23 @@ namespace DynamicLOD_ResetEdition
         }
         public float GetAverageFPS()
         {
-            if (Model.FgModeActive)
-                return IPCManager.SimConnect.GetAverageFPS() * 2.0f;
-            else
-                return IPCManager.SimConnect.GetAverageFPS();
+            if (Model.VrModeActive) return (float)Math.Round(IPCManager.SimConnect.GetAverageFPS());
+            else if (Model.LsModeActive) return (float)Math.Round(IPCManager.SimConnect.GetAverageFPS() * Model.LsModeMultiplier);
+            else if (Model.FgModeActive) return (float)Math.Round(IPCManager.SimConnect.GetAverageFPS() * 2.0f);
+            else return (float)Math.Round(IPCManager.SimConnect.GetAverageFPS());
         }
         private void GetMSFSState()
         {
-            Model.tlod = Model.MemoryAccess.GetTLOD_PC();
-            Model.olod = Model.MemoryAccess.GetOLOD_PC();
-            Model.cloudQ = Model.MemoryAccess.GetCloudQ_PC();
-            Model.cloudQ_VR = Model.MemoryAccess.GetCloudQ_VR();
-            Model.VrModeActive = Model.MemoryAccess.IsVrModeActive();
-            Model.FgModeActive = Model.MemoryAccess.IsFgModeActive();
+            if (--VRStateCounter <= 0)
+            {
+                Model.VrModeActive = Model.MemoryAccess.IsVrModeActive();
+                VRStateCounter = 5;
+            }
             if (Model.ActiveWindowMSFS != Model.MemoryAccess.IsActiveWindowMSFS() && Model.PauseMSFSFocusLost) Model.FPSSettleCounter = ServiceModel.FPSSettleSeconds;
             Model.ActiveWindowMSFS = Model.MemoryAccess.IsActiveWindowMSFS();
             string ActiveGraphicsMode = Model.ActiveGraphicsMode;
             if (Model.VrModeActive) Model.ActiveGraphicsMode = "VR";
+            else if (Model.LsModeActive) Model.ActiveGraphicsMode = "LSFG";
             else if (Model.FgModeActive) Model.ActiveGraphicsMode = "FG";
             else Model.ActiveGraphicsMode = "PC";
             if (Model.ActiveGraphicsMode != ActiveGraphicsMode)

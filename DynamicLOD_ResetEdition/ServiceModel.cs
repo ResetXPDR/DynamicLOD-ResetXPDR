@@ -4,8 +4,10 @@ using System.Globalization;
 using System.Windows;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 using System.Diagnostics;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace DynamicLOD_ResetEdition
 {
@@ -42,6 +44,7 @@ namespace DynamicLOD_ResetEdition
         public int TargetFPS { get; set; }
         public int TargetFPS_PC { get; set; }
         public int TargetFPS_VR { get; set; }
+        public int TargetFPS_LS { get; set; }
         public int TargetFPS_FG { get; set; }
         public int CloudRecoveryFPS { get; set; }
         public int ConstraintTicks { get; set; }
@@ -68,9 +71,20 @@ namespace DynamicLOD_ResetEdition
         public static int MfLvarsPerFrame { get; set; }
         public bool WaitForConnect { get; set; }
         public bool OpenWindow { get; set; }
+        public int windowTop { get; set; }
+        public int windowLeft { get; set; }
+        public bool windowIsVisible { get; set; }
+        public bool RememberWindowPos { get; set; }
+
+        private bool resetWindowPosition;
+        public bool OnTop { get; set; }
+
         public bool PauseMSFSFocusLost { get; set; } = false;
         public bool VrModeActive { get; set; }
         public bool FgModeActive { get; set; }
+        public bool LsModeActive { get; set; }
+        public int LsModeMultiplier { get; set; }
+
         public bool ActiveWindowMSFS { get; set; }
         public string ActiveGraphicsMode { get; set; } = "PC";
         public bool ActiveGraphicsModeChanged { get; set; } = false;
@@ -95,12 +109,16 @@ namespace DynamicLOD_ResetEdition
         public long OffsetPointerCloudQVr { get; set; }
         public long OffsetPointerVrMode { get; set; }
         public long OffsetPointerFgMode { get; set; }
-        public bool TestVersion { get; set; } = false;
-  
-        protected ConfigurationFile ConfigurationFile = new();
+
+        public const bool TestVersion = false;
+        public const string TestVariant = "-test1";
+
+
+        public ConfigurationFile ConfigurationFile = new();
 
         public ServiceModel()
         {
+            if (!TestVersion && File.GetLastWriteTime(App.ConfigFile) > DateTime.Now.AddSeconds(-10)) resetWindowPosition = true;
             CurrentPairTLOD = 0;
             CurrentPairOLOD = 0;
             LoadConfiguration();
@@ -115,6 +133,17 @@ namespace DynamicLOD_ResetEdition
             ConfigVersion = Convert.ToInt32(ConfigurationFile.GetSetting("ConfigVersion", "1"));
             WaitForConnect = Convert.ToBoolean(ConfigurationFile.GetSetting("waitForConnect", "true"));
             OpenWindow = Convert.ToBoolean(ConfigurationFile.GetSetting("openWindow", "true"));
+            RememberWindowPos = Convert.ToBoolean(ConfigurationFile.GetSetting("RememberWindowPos", "true"));
+            if (resetWindowPosition)
+            {
+                SetSetting("windowTop", "50", true);
+                SetSetting("windowLeft", "50", true);
+                resetWindowPosition = false;
+            }
+            windowTop = Convert.ToInt32(ConfigurationFile.GetSetting("windowTop", "50"));
+            windowLeft = Convert.ToInt32(ConfigurationFile.GetSetting("windowLeft", "50"));
+            windowIsVisible = Convert.ToBoolean(ConfigurationFile.GetSetting("windowIsVisible", "true"));
+            OnTop = Convert.ToBoolean(ConfigurationFile.GetSetting("OnTop", "false"));
             PauseMSFSFocusLost = Convert.ToBoolean(ConfigurationFile.GetSetting("PauseMSFSFocusLost", "false"));
             CruiseLODUpdates = Convert.ToBoolean(ConfigurationFile.GetSetting("CruiseLODUpdates", "false"));
             DecCloudQ = Convert.ToBoolean(ConfigurationFile.GetSetting("DecCloudQ", "false"));
@@ -123,8 +152,10 @@ namespace DynamicLOD_ResetEdition
             UseTargetFPS = Convert.ToBoolean(ConfigurationFile.GetSetting("useTargetFps", "true"));
             TargetFPS_PC = Convert.ToInt32(ConfigurationFile.GetSetting("targetFpsPC", "30"));
             TargetFPS_VR = Convert.ToInt32(ConfigurationFile.GetSetting("targetFpsVR", "30"));
+            TargetFPS_LS = Convert.ToInt32(ConfigurationFile.GetSetting("targetFpsLS", "30"));
             TargetFPS_FG = Convert.ToInt32(ConfigurationFile.GetSetting("targetFpsFG", "30"));
             if (ActiveGraphicsMode == "VR") TargetFPS = TargetFPS_VR;
+            else if (ActiveGraphicsMode == "LSFG") TargetFPS = TargetFPS_LS;
             else if (ActiveGraphicsMode == "FG") TargetFPS = TargetFPS_FG;
             else TargetFPS = TargetFPS_PC;
             CloudRecoveryFPS = Convert.ToInt32(ConfigurationFile.GetSetting("CloudRecoveryFPS", "0"));
@@ -281,5 +312,54 @@ namespace DynamicLOD_ResetEdition
             }
             LoadConfiguration();
         }
+
+        public void DetectGraphics()
+        {
+            VrModeActive = MemoryAccess.IsVrModeActive();
+            FgModeActive = MemoryAccess.IsFgModeActive();
+            if (Process.GetProcessesByName("LosslessScaling").Length > 0)
+            {
+                LsModeActive = true;
+                LsModeMultiplier = GetLSModeMultiplier();
+            }
+            else LsModeActive = false;
+        }
+
+        public static int GetLSModeMultiplier()
+        {
+            string xmlFilePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Lossless Scaling\Settings.xml";
+            XDocument xmlDoc = XDocument.Load(xmlFilePath);
+            var profile = xmlDoc.Descendants("Profile")
+                        .FirstOrDefault(p => p.Element("Title")?.Value == "MSFS2020");
+            if (profile == null) profile = xmlDoc.Descendants("Profile")
+                        .FirstOrDefault(p => p.Element("Title")?.Value == "Default");
+            if (profile != null)
+            {
+                XElement frameGenerationElement = profile.Elements("FrameGeneration").FirstOrDefault();
+                if (frameGenerationElement != null)
+                {
+                    if (frameGenerationElement.Value != "Off")
+                    {
+                        XElement lsfgModeElement = profile.Elements("LSFGMode").FirstOrDefault();
+                        if (lsfgModeElement != null)
+                        {
+                            int LSFGMode = Convert.ToInt32(lsfgModeElement.Value.Substring(1, 1));
+                            if (LSFGMode < 2 || LSFGMode > 4) LSFGMode = 1;
+                            return LSFGMode;
+                        }
+                    }
+                }
+            }
+            return 1;
+        }
+        public static string CloudQualityText(int CloudQuality)
+        {
+            if (CloudQuality == 0) return "Low";
+            else if (CloudQuality == 1) return "Medium";
+            else if (CloudQuality == 2) return "High";
+            else if (CloudQuality == 3) return "Ultra";
+            else return "n/a";
+        }
+
     }
 }

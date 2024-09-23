@@ -104,14 +104,14 @@ namespace DynamicLOD_ResetEdition
                 allowMemoryWrites = false;
             }
             else allowMemoryWrites = true;
-            if (logResult && (Model.TestVersion || !allowMemoryWrites))
+            if (logResult && (ServiceModel.TestVersion || !allowMemoryWrites))
             {
                 Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"TLOD PC: {GetTLOD_PC()}");
                 Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"TLOD VR: {GetTLOD_VR()}");
                 Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"OLOD PC: {GetOLOD_PC()}");
                 Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"OLOD VR: {GetOLOD_VR()}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Cloud Quality PC: {GetCloudQ_PC()}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Cloud Quality VR: {GetCloudQ_VR()}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Cloud Quality PC: {ServiceModel.CloudQualityText(GetCloudQ_PC())}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Cloud Quality VR: {ServiceModel.CloudQualityText(GetCloudQ_VR())}");
                 Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"VR Mode: {MemoryInterface.ReadMemory<int>(addrVrMode)}");
                 Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Ansio Filter: {MemoryInterface.ReadMemory<int>(addrTLOD + offsetPointerAnsioFilter)}");
                 Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Water Waves: {MemoryInterface.ReadMemory<int>(addrTLOD + offsetWaterWaves)}");

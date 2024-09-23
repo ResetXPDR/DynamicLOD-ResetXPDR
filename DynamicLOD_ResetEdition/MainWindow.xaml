@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DynamicLOD_ResetEdition"
         mc:Ignorable="d"
-        Title="DynamicLOD_ResetEdition" Height="450" Width="800" SizeToContent="WidthAndHeight" ResizeMode="NoResize" IsVisibleChanged="Window_IsVisibleChanged" Closing="Window_Closing">
+        Title="DynamicLOD_ResetEdition" Height="450" Width="800" SizeToContent="WidthAndHeight" ResizeMode="NoResize" IsVisibleChanged="Window_IsVisibleChanged" Closing="Window_Closing" Background="#D8FFFFFF">
     <Window.Resources>
         <Style TargetType="GroupBox">
             <Setter Property="HeaderTemplate">
@@ -88,29 +88,29 @@
                     <GroupBox.Header>FPS Adaption</GroupBox.Header>
                     <StackPanel Orientation="Vertical">
                         <StackPanel Orientation="Horizontal">
-                            <CheckBox Name="chkUseTargetFPS" VerticalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Click="chkUseTargetFPS_Click">Limit LODs when below Target PC FPS:</CheckBox>
-                            <TextBox Name="txtTargetFPS" Margin="8,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp"></TextBox>
+                            <CheckBox Name="chkUseTargetFPS" VerticalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Background="#7FFFFFFF" Click="chkUseTargetFPS_Click">Limit LODs when below Target PC FPS:</CheckBox>
+                            <TextBox Name="txtTargetFPS" Margin="8,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" Background="#7FFFFFFF"></TextBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                             <Label>Reduce TLOD/OLOD by</Label>
-                            <TextBox Name="txtDecreaseTlod" Margin="2,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp"></TextBox>
-                            <TextBox Name="txtDecreaseOlod" Margin="2,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp"></TextBox>
+                            <TextBox Name="txtDecreaseTlod" Margin="2,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" Background="#7FFFFFFF"></TextBox>
+                            <TextBox Name="txtDecreaseOlod" Margin="2,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" Background="#7FFFFFFF"></TextBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                             <Label>Minimum TLOD/OLOD</Label>
-                            <TextBox Name="txtMinTLod" Margin="6,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp"></TextBox>
-                            <TextBox x:Name="txtMinOLod" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" Margin="2,0,0,0"/>
+                            <TextBox Name="txtMinTLod" Margin="6,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" Background="#7FFFFFFF"></TextBox>
+                            <TextBox x:Name="txtMinOLod" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" Margin="2,0,0,0" Background="#7FFFFFFF"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <Label Width="136">Delay start/Reduce for</Label>
-                            <TextBox x:Name="txtConstraintDelayTicks" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp"/>
-                            <TextBox Name="txtConstraintTicks" Margin="2,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp"></TextBox>
+                            <TextBox x:Name="txtConstraintDelayTicks" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" Background="#7FFFFFFF"/>
+                            <TextBox Name="txtConstraintTicks" Margin="2,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" Background="#7FFFFFFF"></TextBox>
                             <Label>s</Label>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <CheckBox x:Name="chkDecCloudQ" VerticalContentAlignment="Center" Click="chkDecCloudQ_Click" Width="150" Content="Decrease Cloud Quality" Checked="chkDecCloudQ_Checked" Padding="4,-1,0,0"/>
+                            <CheckBox x:Name="chkDecCloudQ" VerticalContentAlignment="Center" Click="chkDecCloudQ_Click" Width="150" Content="Decrease Cloud Quality" Checked="chkDecCloudQ_Checked" Padding="4,-1,0,0" Background="#7FFFFFFF"/>
                             <Label Name= "lblCloudRecoveryFPS" >Cloud Recovery FPS +</Label>
-                            <TextBox Name="txtCloudRecoveryFPS" Margin="0,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp"></TextBox>
+                            <TextBox Name="txtCloudRecoveryFPS" Margin="0,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" Background="#7FFFFFFF"></TextBox>
                         </StackPanel>
                     </StackPanel>
                 </GroupBox>
@@ -130,18 +130,19 @@
                         </Grid.RowDefinitions>
                         <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0">
                             <Label VerticalContentAlignment="Center">Use Profile</Label>
-                            <ComboBox Name="cbProfile" SelectionChanged="cbProfile_SelectionChanged" MinWidth="48" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                            <CheckBox x:Name="chkCruiseLODUpdates" VerticalContentAlignment="Center" Click="chkCruiseLODUpdates_Click" Width="139" Content="Cruise LOD Updates" Checked="chkCruiseLODUpdates_Checked" Margin="10,0,1,0" Padding="4,-1,0,0"/>
+                            <ComboBox Name="cbProfile" SelectionChanged="cbProfile_SelectionChanged" MinWidth="48" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Background="#7FFFFFFF"/>
+                            <CheckBox x:Name="chkCruiseLODUpdates" VerticalContentAlignment="Center" Click="chkCruiseLODUpdates_Click" Width="139" Content="Cruise LOD Updates" Checked="chkCruiseLODUpdates_Checked" Margin="10,0,1,0" Padding="4,-1,0,0" Background="#7FFFFFFF"/>
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
-                            <CheckBox Name="chkOpenWindow" Margin="6" VerticalContentAlignment="Center" Click="chkOpenWindow_Click">Open Window on App Start</CheckBox>
-                        <CheckBox x:Name="chkPauseMSFSFocusLost" VerticalContentAlignment="Center" Click="chkPauseMSFSFocusLost_Click" Width="200" Content="Pause when MSFS loses focus" Checked="chkPauseMSFSFocusLost_Checked" Padding="4,0,0,0" Margin="5,0,0,0"/>
+                            <Button Name ="btnRedetect" Content ="_Redetect" Width="62" Margin="0,0,0,0" BorderThickness="1,1,2,2" Background="#FFD8D7D7" ToolTip ="Redetect PC/FG/VR/LSFG graphics mode" Click="btnRedetect_Click"/>
+                            <CheckBox x:Name="chkOnTop" VerticalContentAlignment="Center" Width="70"  Height="24" MaxHeight="24" MinHeight="24" Click="chkOnTop_Click" Content="On top" Margin="35,0,0,0" Background="#7FFFFFFF"/>
+                            <CheckBox x:Name="chkPauseMSFSFocusLost" VerticalContentAlignment="Center" Click="chkPauseMSFSFocusLost_Click" Content="Pause when MSFS loses focus" Checked="chkPauseMSFSFocusLost_Checked" Padding="4,0,0,0" Margin="6" Background="#7FFFFFFF"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,8,0,0">
-                            <CheckBox x:Name="chkLodStepMax" VerticalContentAlignment="Center" Click="chkLodStepMax_Click" Width="97" Content="LOD Step Max" Checked="chkLodStepMax_Checked"/>
+                            <CheckBox x:Name="chkLodStepMax" VerticalContentAlignment="Center" Click="chkLodStepMax_Click" Width="97" Content="LOD Step Max" Checked="chkLodStepMax_Checked" Background="#7FFFFFFF"/>
                             <Label Name="lblLodStepMax" VerticalContentAlignment="Center" Width="114" Padding="1,5,0,5">on Increase/Decrease</Label>
-                            <TextBox Name="txtLodStepMaxInc" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" TextChanged="txtLodStepMaxInc_TextChanged"></TextBox>
-                            <TextBox x:Name="txtLodStepMaxDec" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" TextChanged="txtLodStepMaxDec_TextChanged" Margin="2,0,5,0"/>
+                            <TextBox Name="txtLodStepMaxInc" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" TextChanged="txtLodStepMaxInc_TextChanged" Background="#7FFFFFFF"></TextBox>
+                            <TextBox x:Name="txtLodStepMaxDec" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" LostFocus="TextBox_LostFocus" KeyUp="TextBox_KeyUp" TextChanged="txtLodStepMaxDec_TextChanged" Margin="2,0,5,0" Background="#7FFFFFFF"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
                             <Label x:Name="lblStatusMessage" MinWidth="50" VerticalContentAlignment="Center" Content=""/>
@@ -159,9 +160,9 @@
                 <StackPanel Orientation="Vertical">
                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                         <Label>AGL</Label>
-                        <TextBox Name="txtTlodAlt" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42"></TextBox>
+                        <TextBox Name="txtTlodAlt" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" Background="#7FFFFFFF"></TextBox>
                         <Label Margin="8,0,0,0">LOD</Label>
-                        <TextBox Name="txtTlodValue" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42"></TextBox>
+                        <TextBox Name="txtTlodValue" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" Background="#7FFFFFFF"></TextBox>
                         <Button Name="btnTlodChange" Margin="12,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" Width="24" Click="btnTlodChange_Click">S</Button>
                         <Button Name="btnTlodAdd" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" Width="24" Click="btnTlodAdd_Click">+</Button>
                         <Button Name="btnTlodRemove" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" Width="24" Click="btnTlodRemove_Click">-</Button>
@@ -170,7 +171,12 @@
                     <DataGrid Name="dgTlodPairs" Width="196" Margin="0,8,0,0" HorizontalAlignment="Center" IsReadOnly="True" AutoGenerateColumns="False"
                               CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" CanUserSortColumns="False" CanUserResizeColumns="False" CanUserResizeRows="False"
                               GridLinesVisibility="None" HeadersVisibility="Column"
-                              MouseDoubleClick="dgTlodPairs_MouseDoubleClick">
+                              MouseDoubleClick="dgTlodPairs_MouseDoubleClick" SelectionChanged="dgTlodPairs_SelectionChanged">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background" Value="#7FFFFFFF" />
+                            </Style>
+                        </DataGrid.RowStyle>
                         <DataGrid.Columns>
                             <DataGridTextColumn Width="0.55*" Header="AGL" Binding="{Binding Key}" />
                             <DataGridTextColumn Width="0.30*" Header="LOD" Binding="{Binding Value}" />
@@ -184,9 +190,9 @@
                 <StackPanel Orientation="Vertical">
                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                         <Label>AGL</Label>
-                        <TextBox Name="txtOlodAlt" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42"></TextBox>
+                        <TextBox Name="txtOlodAlt" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" Background="#7FFFFFFF"></TextBox>
                         <Label Margin="8,0,0,0">LOD</Label>
-                        <TextBox Name="txtOlodValue" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42"></TextBox>
+                        <TextBox Name="txtOlodValue" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" MaxHeight="24" MinHeight="24" Width="42" Background="#7FFFFFFF"></TextBox>
                         <Button Name="btnOlodChange" Margin="12,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" Width="24" Click="btnOlodChange_Click">S</Button>
                         <Button Name="btnOlodAdd" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" Width="24" Click="btnOlodAdd_Click">+</Button>
                         <Button Name="btnOlodRemove" Margin="4,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="24" Width="24" Click="btnOlodRemove_Click">-</Button>
@@ -195,6 +201,11 @@
                               CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" CanUserSortColumns="False" CanUserResizeColumns="False" CanUserResizeRows="False"
                               GridLinesVisibility="None" HeadersVisibility="Column"
                               MouseDoubleClick="dgOlodPairs_MouseDoubleClick">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background" Value="#7FFFFFFF" />
+                            </Style>
+                        </DataGrid.RowStyle>
                         <DataGrid.Columns>
                             <DataGridTextColumn Width="0.55*" Header="AGL" Binding="{Binding Key}"/>
                             <DataGridTextColumn Width="0.30*" Header="LOD" Binding="{Binding Value}"/>

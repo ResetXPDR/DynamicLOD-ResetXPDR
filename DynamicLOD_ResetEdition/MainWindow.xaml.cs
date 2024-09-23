@@ -39,7 +39,7 @@ namespace DynamicLOD_ResetEdition
 
              string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             assemblyVersion = assemblyVersion[0..assemblyVersion.LastIndexOf('.')];
-            Title += " (" + assemblyVersion + (serviceModel.TestVersion ? "-test" : "")+ ")";
+            Title += " (" + assemblyVersion + (ServiceModel.TestVersion ? ServiceModel.TestVariant : "") + ")";
 
             FillIndices(dgTlodPairs);
             FillIndices(dgOlodPairs);
@@ -65,7 +65,7 @@ namespace DynamicLOD_ResetEdition
                 latestAppVersionStr = latestAppVersionStr.Substring(latestAppVersionStr.Length - 5, 5);
                 if (int.TryParse(latestAppVersionStr.Replace(".", ""), CultureInfo.InvariantCulture, out int LatestAppVersion))
                 {
-                    if ((serviceModel.TestVersion && LatestAppVersion >= currentAppVersion) || LatestAppVersion > currentAppVersion)
+                    if ((ServiceModel.TestVersion && LatestAppVersion >= currentAppVersion) || LatestAppVersion > currentAppVersion)
                     {
                         lblStatusMessage.Content = "Newer app version " + (latestAppVersionStr) + " now available";
                         lblStatusMessage.Foreground = new SolidColorBrush(Colors.Green);
@@ -78,7 +78,7 @@ namespace DynamicLOD_ResetEdition
                     }
                 }
             }
-            if (serviceModel.TestVersion)
+            if (ServiceModel.TestVersion)
             {
                 lblStatusMessage.Content = "Test version";
                 lblStatusMessage.Foreground = new SolidColorBrush(Colors.Green);
@@ -146,11 +146,19 @@ namespace DynamicLOD_ResetEdition
         }
         protected void LoadSettings()
         {
-            chkOpenWindow.IsChecked = serviceModel.OpenWindow;
+            if (serviceModel.RememberWindowPos)
+            {
+                Top = serviceModel.windowTop;
+                Left = serviceModel.windowLeft;
+            }
+            if (serviceModel.OnTop) Topmost = true;
+            else Topmost = false;
+            chkOnTop.IsChecked = serviceModel.OnTop;
             chkCruiseLODUpdates.IsChecked = serviceModel.CruiseLODUpdates;
             chkLodStepMax.IsChecked = serviceModel.LodStepMax;
             chkUseTargetFPS.IsChecked = serviceModel.UseTargetFPS;
             if (serviceModel.ActiveGraphicsMode == "VR") txtTargetFPS.Text = Convert.ToString(serviceModel.TargetFPS_VR, CultureInfo.CurrentUICulture);
+            else if (serviceModel.ActiveGraphicsMode == "LSFG") txtTargetFPS.Text = Convert.ToString(serviceModel.TargetFPS_LS, CultureInfo.CurrentUICulture);
             else if (serviceModel.ActiveGraphicsMode == "FG") txtTargetFPS.Text = Convert.ToString(serviceModel.TargetFPS_FG, CultureInfo.CurrentUICulture);
             else txtTargetFPS.Text = Convert.ToString(serviceModel.TargetFPS_PC, CultureInfo.CurrentUICulture);
             serviceModel.ActiveGraphicsModeChanged = false;
@@ -207,15 +215,6 @@ namespace DynamicLOD_ResetEdition
                 lblConnStatSession.Foreground = new SolidColorBrush(Colors.Red);
         }
 
-        protected string CloudQualityLabel(int CloudQuality)
-        {
-            if (CloudQuality == 0) return "Low";
-            else if (CloudQuality == 1) return "Medium";
-            else if (CloudQuality == 2) return "High";
-            else if (CloudQuality == 3) return "Ultra";
-            else return "n/a";
-        }
-
         protected void UpdateLiveValues()
         {
             if (IPCManager.SimConnect != null && IPCManager.SimConnect.IsConnected)
@@ -233,13 +232,14 @@ namespace DynamicLOD_ResetEdition
                     lblStatusMessage.Content = serviceModel.MemoryAccess.IsDX12() ? "DX12" : " DX11";
                     if (serviceModel.VrModeActive)
                     {
-                        lblSimCloudQs.Content = CloudQualityLabel(serviceModel.cloudQ_VR);
+                        lblSimCloudQs.Content = ServiceModel.CloudQualityText(serviceModel.cloudQ_VR);
                         lblStatusMessage.Content += " | VR Mode";
                     }
                     else
                     {
-                        lblSimCloudQs.Content = CloudQualityLabel(serviceModel.cloudQ);
-                        lblStatusMessage.Content += (serviceModel.FgModeActive ? (serviceModel.ActiveWindowMSFS ? " | FG Mode Active" : " | FG Mode Inactive") : " | PC Mode");
+                        lblSimCloudQs.Content = ServiceModel.CloudQualityText(serviceModel.cloudQ);
+                        if (serviceModel.LsModeActive) lblStatusMessage.Content += " | LSFG " + serviceModel.LsModeMultiplier.ToString("F0") + "X Mode";
+                        else lblStatusMessage.Content += (serviceModel.FgModeActive ? (serviceModel.ActiveWindowMSFS ? " | FG Mode Active" : " | FG Mode Inactive") : " | PC Mode");
                     }
                     if (!serviceModel.ActiveWindowMSFS && serviceModel.PauseMSFSFocusLost) lblStatusMessage.Content += " | Auto PAUSED";
                     else if (serviceModel.FPSSettleCounter > 0) lblStatusMessage.Content += " | FPS Settling for " + serviceModel.FPSSettleCounter.ToString("F0") + " second" + (serviceModel.FPSSettleCounter != 1 ? "s" : "");
@@ -318,10 +318,10 @@ namespace DynamicLOD_ResetEdition
 
         protected float GetAverageFPS()
         {
-            if (serviceModel.MemoryAccess != null && serviceModel.FgModeActive && serviceModel.ActiveWindowMSFS)
-                return IPCManager.SimConnect.GetAverageFPS() * 2.0f;
-            else
-                return IPCManager.SimConnect.GetAverageFPS();
+            if (serviceModel.VrModeActive) return IPCManager.SimConnect.GetAverageFPS();
+            else if (serviceModel.LsModeActive) return IPCManager.SimConnect.GetAverageFPS() * serviceModel.LsModeMultiplier;
+            else if (serviceModel.FgModeActive && serviceModel.ActiveWindowMSFS) return IPCManager.SimConnect.GetAverageFPS() * 2.0f;
+            else return IPCManager.SimConnect.GetAverageFPS();
         }
 
         protected static void UpdateIndex(DataGrid grid, List<(float, float)> pairs, int index)
@@ -332,6 +332,20 @@ namespace DynamicLOD_ResetEdition
 
         protected void OnTick(object sender, EventArgs e)
         {
+            if (serviceModel.RememberWindowPos && !serviceModel.VrModeActive)
+            {
+                if ((int)Top != serviceModel.windowTop)
+                {
+                    serviceModel.windowTop = (int)Top;
+                    serviceModel.SetSetting("windowTop", serviceModel.windowTop.ToString().ToLower());
+                }
+                if ((int)Left != serviceModel.windowLeft)
+                {
+                    serviceModel.windowLeft = (int)Left;
+                    serviceModel.SetSetting("windowLeft", serviceModel.windowLeft.ToString().ToLower());
+                }
+            }
+
             UpdateStatus();
             UpdateLiveValues();
             UpdateAircraftValues();
@@ -372,13 +386,7 @@ namespace DynamicLOD_ResetEdition
             LoadSettings();
         }
 
-        private void chkOpenWindow_Click(object sender, RoutedEventArgs e)
-        {
-            serviceModel.SetSetting("openWindow", chkOpenWindow.IsChecked.ToString().ToLower());
-            LoadSettings();
-        }
-
-        private void chkCruiseLODUpdates_Click(object sender, RoutedEventArgs e)
+         private void chkCruiseLODUpdates_Click(object sender, RoutedEventArgs e)
         {
             serviceModel.SetSetting("CruiseLODUpdates", chkCruiseLODUpdates.IsChecked.ToString().ToLower());
             LoadSettings();
@@ -480,6 +488,7 @@ namespace DynamicLOD_ResetEdition
                     case "targetFps":
                         if (iValue < 10 || iValue > 200) iValue = serviceModel.TargetFPS;
                         if (serviceModel.ActiveGraphicsMode == "VR") key = "targetFpsVR";
+                        else if (serviceModel.ActiveGraphicsMode == "LSFG") key = "targetFpsLS";
                         else if (serviceModel.ActiveGraphicsMode == "FG") key = "targetFpsFG";
                         else key = "targetFpsPC";
                         break;
@@ -685,8 +694,26 @@ namespace DynamicLOD_ResetEdition
                 txtCloudRecoveryFPS.Visibility = Visibility.Hidden;
             }
         }
+
+        private void dgTlodPairs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
+        private void btnRedetect_Click(object sender, RoutedEventArgs e)
+        {
+            Logger.Log(LogLevel.Information, "MainWindow:btnRedetect_Click", "User");
+            serviceModel.DetectGraphics();
+            serviceModel.ActiveGraphicsModeChanged = true;
+        }
+        private void chkOnTop_Click(object sender, RoutedEventArgs e)
+        {
+            serviceModel.SetSetting("OnTop", chkOnTop.IsChecked.ToString().ToLower());
+            Logger.Log(LogLevel.Information, "MainWindow:chkOnTop_Click", chkOnTop.IsChecked.ToString().ToLower());
+            LoadSettings();
+        }
+
     }
- 
+
     public class RowToIndexConvertor : MarkupExtension, IValueConverter
     {
         static RowToIndexConvertor convertor;

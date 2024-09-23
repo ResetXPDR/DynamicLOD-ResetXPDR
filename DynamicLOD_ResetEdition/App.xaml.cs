@@ -46,6 +46,14 @@ namespace DynamicLOD_ResetEdition
                 return;
             }
 
+            if (Process.GetProcessesByName("SmoothFlight").Length > 0)
+            {
+                MessageBox.Show("SmoothFlight is already running!", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Application.Current.Shutdown();
+                return;
+            }
+
+
             Directory.SetCurrentDirectory(AppDir);
 
             if (!File.Exists(ConfigFile))
@@ -78,7 +86,7 @@ namespace DynamicLOD_ResetEdition
             timer.Start();
 
             MainWindow = new MainWindow(notifyIcon.DataContext as NotifyIconViewModel, Model);
-            if (Model.OpenWindow)
+            if (Model.OpenWindow && Model.windowIsVisible)
                 MainWindow.Show();
         }
 
@@ -94,7 +102,7 @@ namespace DynamicLOD_ResetEdition
                     Model.MemoryAccess.SetTLOD_VR(Model.DefaultTLOD_VR);
                     Model.MemoryAccess.SetOLOD_PC(Model.DefaultOLOD);
                     Model.MemoryAccess.SetOLOD_VR(Model.DefaultOLOD_VR);
-                    Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting cloud quality to {Model.DefaultCloudQ} / VR {Model.DefaultCloudQ_VR}");
+                    Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting cloud quality to {ServiceModel.CloudQualityText(Model.DefaultCloudQ)}  / VR  {ServiceModel.CloudQualityText(Model.DefaultCloudQ_VR)}");
                     Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ);
                     Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR);
                 }
@@ -107,6 +115,7 @@ namespace DynamicLOD_ResetEdition
 
         protected void OnTick(object sender, EventArgs e)
         {
+            if ((MainWindow.Visibility == Visibility.Visible && !Model.windowIsVisible) || (MainWindow.Visibility == Visibility.Hidden && Model.windowIsVisible)) Model.SetSetting("windowIsVisible", Model.windowIsVisible ? "false" : "true");
             if (Model.ServiceExited)
             {
                 Current.Shutdown();
@@ -131,7 +140,7 @@ namespace DynamicLOD_ResetEdition
             Log.Information($"-----------------------------------------------------------------------");
             string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             assemblyVersion = assemblyVersion[0..assemblyVersion.LastIndexOf('.')];
-            Logger.Log(LogLevel.Information, "App:InitLog", $"DynamicLOD_ResetEdition v{assemblyVersion} started! Log Level: {logLevel} Log File: {logFilePath}");
+            Logger.Log(LogLevel.Information, "App:InitLog", $"DynamicLOD_ResetEdition v{assemblyVersion}{(ServiceModel.TestVersion ? ServiceModel.TestVariant : "")} started! Log Level: {logLevel} Log File: {logFilePath}");
         }
 
         protected void InitSystray()
