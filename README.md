@@ -3,17 +3,18 @@
 Based on muumimorko's idea and code in MSFS_AdaptiveLOD, as further developed by Fragtality in DynamicLOD.<br/>
 
 This utility builds upon the functionality provided in DynamicLOD, which aims to improve MSFS performance and smoothness by dynamically changing the TLOD and OLOD based on the current AGL, and provides additonal features such as:<br/>
-- Simultaneous PC, FG and VR mode compatibilty including correct FG FPS display and separate FPS targets for each mode,<br/>
+- Simultaneous PC, FG (native nVidia, FG mod and Lossless Scaling) and VR mode compatibilty including correct FG FPS display and separate FPS targets for each mode,<br/>
 - Optional LOD updates in cruise,<br/> 
 - Optional predictive incremental steps between LOD changes to improve smoothness,<br/>
 - Optional cloud quality decrease with FPS Adaption,<br/>
 - Enhanced FPS Adaption control,<br/>
-- Automatic pause when MSFS loses focus option, particularly useful if using FG due to varying FPS when MSFS gains or loses focus,<br/>
+- Automatic pause when MSFS loses focus option, particularly useful if using native nVidia FG due to varying FPS when MSFS gains or loses focus,<br/>
 - Automatic FPS settling timer on MSFS graphics mode and focus changes to allow FPS to stabilise before being acted upon,<br/>
 - Auto future MSFS version compatibility, provided MSFS memory changes are like in previous updates,<br/>
 - Update prompt if newer utility version found on startup,<br/>
 - Custom profile naming, but only through editing of the config file at this time,<br/> 
 - Auto restoration of original settings changed by the utility,<br/>
+- Enhanced saving and restoration of MSFS settings by the app to better withstand MSFS CTDs,<br/>
 - Streamlined log entries,<br/> 
 - Removal of redundant features, and<br/>
 - Minor UI changes.<br/><br/>
@@ -30,7 +31,7 @@ Which app should I use? DynamicLOD_ResetEdition or MSFS2020_AutoFPS?:
 - Where they differ is that DynamicLOD provides user set tables for LOD changes at specific altitudes, giving the user precise control over when and where these changes take place such that they can optimise them to their particular flight activity they normally do, and can set a specific profile for each one. The price of such precise control is that the user must be intimately familiar with LODs to be able to tune a variety of settings in the app for the best outcome and this can be a bit daunting for more casual and non-technical users.
 - Alternatively, AutoFPS seeks to automate these changes as much as possible based on a target FPS and a minimum and maximum LOD range within which to automatically adjust. This results in a much simpler and generally similarly acceptable user experience compared to DynamicLOD. Nonetheless, the automation algorithm does require FPS headroom to function correctly, so can conflict in cases where an FPS cap is being used, such as with Vsync or motion reprojection in VR. Additionally, AutoFPS tends to make constant small changes to TLOD, much more than DynamicLOD does, and this can induce stuttering on older hardware as it struggles to manage even small scenery changes. In these cases, the user would be better off using DynamicLOD in a more manually tuned approach. 
 
-This utility can be installed concurrent with any DynamicLOD variant. You just shouldn't run them at the same time, as they would both be fighting each other with MSFS settings. This app can detect whether itself, a previous DynamicLOD variant or MSFS2020_AutoFPS is running and will quit if it encounters one.</br>
+This utility can be installed concurrent with any DynamicLOD variant. You just shouldn't run them at the same time, as they would both be fighting each other with MSFS settings. This app can detect whether itself, a previous DynamicLOD variant, MSFS2020_AutoFPS or Smoothflight is running and will quit if it encounters one.</br>
 
 If you are not familiar with what MSFS graphics settings do, specifically TLOD, OLOD and cloud quality, and don't understand the consequences of changing them, it is highly recommended you do not use this utility.
 <br/><br/>
@@ -81,8 +82,13 @@ Some Notes:
   - Starting manually: anytime, but preferably before MSFS or in the Main Menu. The utility will stop itself when MSFS closes.  
   - Closing the Window does not close the utiltiy, use the Context Menu of the SysTray Icon.
   - Clicking on the SysTray Icon opens the Window (again).
-  - Runnning as Admin NOT required (BUT: It is required to be run under the same User/Elevation as MSFS).
-  - Do not change TLOD, OLOD and Cloud Quality MSFS settings manually while in a flight with this app running as it will conflict with what the app is managing and they will not restore to what you set when you exit your flight. If you wish to change the defaults for these MSFS settings, you must do so either without this app running or, if it is, only while you are in the MSFS main menu (ie not in a flight). 
+  - Running as Admin NOT required (BUT: It is required to be run under the same User/Elevation as MSFS).
+  - Do not change TLOD, OLOD and Cloud Quality MSFS settings manually while in a flight with this app running as it will conflict with what the app is managing and they will not restore to what you set when you exit your flight. If you wish to change the defaults for these MSFS settings, you must do so either without this app running or, if it is, only while you are in the MSFS main menu (ie not in a flight).
+- App Window
+  - Position will be remembered between sessions, except movements to it made while in VR due to window restoration issues.
+  - Will automatically reset to default position (50,50) if the app is restarted within 10 seconds of last closing.
+  - Position will be saved during the session and will restore that state on next startup.
+  - Can be shown at any time by double clicking, or right-click select Show Window, on the app icon in the system tray.
 - Connection Status
   - Red values indicate not connected, green is connected.
 - Sim Values
@@ -93,11 +99,13 @@ Some Notes:
   - If you wish to have custom profile names, you will need to manually edit the config file for these items after running the new app version at least once, eg. &lt;add key="profileName1" value="IFR" /&gt;.
   - Cruise LOD Updates, when checked, will continue to update LOD values based on AGL in the cruise phase, which is useful for VFR flights over undulating terrain and has an otherwise negligble impact on high level or IFR flights so it is recommended to enable this.
   - LOD Step Max, when checked, allows the utility to slow the rate of change in LOD per second, with increase and decrease being individually settable, to smooth out LOD table changes. This allows you to have large steps in your LOD tables without experiencing abrupt changes like having it disabled would do, hence it is recommended to turn it on and start out with the default steps of 5.
-  - Pause when MSFS loses focus - This will stop MSFS settings being changed while you are focused on another app and not MSFS. It is particularly useful for when using FG as the FG active and inactive frame rate can vary quite considerably and because FG is not always an exact doubling of non-FG FPS.
+  - Redetect button - Redetects PC/FG/LSFG/VR graphics mode if changed by the user after commencing a flight, now necessary because the app no longer needlessly polls repetitively for graphics mode changes.
+  - On Top - Allows the app to overlay your MSFS session if desired, with MSFS having the focus. Mainly useful for adjusting settings and seeing the outcome over the top of your flight as it progresses. Should also satisfy single monitor users utilising the native nVidia FG capability of MSFS as they now see the true FG FPS the app is reading when MSFS has the focus.
+  - Pause when MSFS loses focus - This will stop MSFS settings being changed while you are focused on another app and not MSFS. It is particularly useful for when using native nVidia FG as the FG active and inactive frame rate can vary quite considerably and because FG is not always an exact doubling of non-FG FPS.
   - Status Message - On app startup indicates key system messages, such as:
     - Before loading a flight - whether a newer version of the app is available to download and install
     - Loading in to a flight - whether MSFS memory integrity test have failed, and
-    - Flight is loaded - showing detected DX version, Graphics Mode (PC, FG, or VR), and app pause or FPS settling time status as applicable. The FPS settling timer runs for 6 seconds to allow FPS to settle between pausing/unpausing and VR/PC/FG mode transitions. This allows the FPS to stabilise before engaging automatic functions and should lead to much smaller TLOD changes when seeking the target FPS on such transitions.
+    - Flight is loaded - showing detected DX version, Graphics Mode (PC, FG, LSFG or VR), and app pause or FPS settling time status as applicable. The FPS settling timer runs for 6 seconds to allow FPS to settle between pausing/unpausing and PC/FG/LSFG/VR mode transitions. This allows the FPS to stabilise before engaging automatic functions and should lead to much smaller TLOD changes when seeking the target FPS on such transitions.
 - LOD Level Tables
   - The first Pair with AGL 0 can not be deleted. The AGL can not be changed. Only the xLOD.
   - Additional Pairs can be added at any AGL and xLOD desired. Pairs will always be sorted by AGL.
