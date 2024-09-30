@@ -67,7 +67,9 @@ Some Notes:
   - Binary in %appdata%\DynamicLOD_ResetEdition\bin
   - Logs in %appdata%\DynamicLOD_ResetEdition\log
   - Config: %appdata%\DynamicLOD_ResetEdition\DynamicLOD_ResetEdition.config
-- If after installing and running the app your simconnect always stays red, try downloading and installing a Microsoft official version of “Microsoft Visual C++ 2015 - 2022 Redistributable”, which may be missing from your Windows installation.
+- If after installing and running the app your simconnect always stays red:
+  - Try downloading and installing a Microsoft official version of “Microsoft Visual C++ 2015 - 2022 Redistributable”, which may be missing from your Windows installation.
+  - If still not resolved and the error code in your AutoFPS log file is Exception 31, you most likely have a corrupt MSFS installation so you can choose to either not run this app or to reinstall MSFS completely. 
 - If you get an "MSFS compatibility test failed - Read Only mode" message there are three possible causes:
   - You may have changed MSFS settings in your usercfg.opt file beyond what is possible to set in the MSFS settings menu. To rectify, go into MSFS settings at the main menu and reset to default (F12) the graphics settings for both PC and VR mode, then make all changes to MSFS within the MSFS settings menu.
   - There is an issue with permissions and you may need to run the app as Administrator.
