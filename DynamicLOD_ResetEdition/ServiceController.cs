@@ -19,7 +19,7 @@ namespace DynamicLOD_ResetEdition
             try
             {
                 Logger.Log(LogLevel.Information, "ServiceController:Run", $"Service starting ...");
-                while (!Model.CancellationRequested)
+                while (!Model.CancellationRequested && Model.AppEnabled)
                 {
                     if (Wait())
                     {
@@ -41,6 +41,7 @@ namespace DynamicLOD_ResetEdition
                         }
                     }
                 }
+                if (!Model.AppEnabled) Logger.Log(LogLevel.Critical, "ServiceController:Run", "MSFS compatibility test failed - app disabled.");
 
                 IPCManager.CloseSafe();
             }
@@ -58,9 +59,16 @@ namespace DynamicLOD_ResetEdition
                 return false;
             }
             else
+            {
                 Model.IsSimRunning = true;
+                if (IPCManager.IsSim2024() != Model.isMSFS2024_last)
+                {
+                    Model.isMSFS2024_last = IPCManager.IsSim2024();
+                    if (Model.LoadConfiguration()) Model.ReloadAppWindowSettings = true;
+                }
+            }
 
-            if (!IPCManager.WaitForConnection(Model))
+                if (!IPCManager.WaitForConnection(Model))
                 return false;
 
             if (!IPCManager.WaitForSessionReady(Model))
@@ -97,7 +105,7 @@ namespace DynamicLOD_ResetEdition
                 Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Starting Service Loop");
                 if (Model.ConfigurationFile.SettingExists("defaultTLOD"))
                 {
-                    Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "MSFS or MSFS2020_AutoFPS did not exit properly last session. Getting default MSFS settings from MSFS2020_AutoFPS config file.");
+                    Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "MSFS or DynamicLOD_ResetEdition did not exit properly last session. Getting default MSFS settings from DynamicLOD_ResetEdition" + (Model.isMSFS2024 ? "2024" : "") + " config file.");
                 }
                 else Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Normal startup detected. Getting default MSFS settings from MSFS.");
                 Model.DefaultTLOD = Convert.ToSingle(Model.ConfigurationFile.GetSetting("defaultTLOD", Model.MemoryAccess.GetTLOD_PC().ToString("F0")));
@@ -110,6 +118,15 @@ namespace DynamicLOD_ResetEdition
                 Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Initial cloud quality PC {ServiceModel.CloudQualityText(Model.DefaultCloudQ)} / VR {ServiceModel.CloudQualityText(Model.DefaultCloudQ_VR)}");
                 Model.DefaultSettingsRead = true;
                 Model.DetectGraphics();
+                if (Model.isMSFS2024)
+                {
+                    Model.DefaultDynSet = Convert.ToBoolean(Model.ConfigurationFile.GetSetting("defaultDynSet", (Model.MemoryAccess.GetDynSet() ? "true" : "false")));
+                    Model.DefaultDynSetVR = Convert.ToBoolean(Model.ConfigurationFile.GetSetting("defaultDynSetVR", (Model.MemoryAccess.GetDynSetVR() ? "true" : "false")));
+                    Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Initial Dynamic Settings PC {(Model.DefaultDynSet ? "Enabled" : "Disabled")} / VR {(Model.DefaultDynSetVR ? "Enabled" : "Disabled")}");
+                    Model.MemoryAccess.SetDynSet(false);
+                    Model.MemoryAccess.SetDynSetVR(false);
+                    Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Dynamic Settings PC and VR temporarily disabled while DynamicLOD_ResetEdition" + (Model.isMSFS2024 ? "2024" : "") + " is controlling MSFS settings");
+                }
                 while (!Model.CancellationRequested && IPCManager.IsSimRunning() && IPCManager.IsCamReady())
                 {
                     try
@@ -134,6 +151,12 @@ namespace DynamicLOD_ResetEdition
                     Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Sim still running, resetting cloud quality to {ServiceModel.CloudQualityText(Model.DefaultCloudQ)} / VR {ServiceModel.CloudQualityText(Model.DefaultCloudQ_VR)}");
                     Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ);
                     Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR);
+                    if (Model.isMSFS2024)
+                    {
+                        Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", $"Sim still running, resetting Dynamic Settings to PC {Model.DefaultDynSet} / VR {Model.DefaultDynSetVR}");
+                        Model.MemoryAccess.SetDynSet(Model.DefaultDynSet);
+                        Model.MemoryAccess.SetDynSetVR(Model.DefaultDynSetVR);
+                    }
                     if (Model.MemoryAccess.GetTLOD_PC() == Model.DefaultTLOD) // As long as one setting restoration stuck
                     {
                         Model.ConfigurationFile.RemoveSetting("defaultTLOD");
@@ -142,10 +165,16 @@ namespace DynamicLOD_ResetEdition
                         Model.ConfigurationFile.RemoveSetting("defaultOLOD_VR");
                         Model.ConfigurationFile.RemoveSetting("defaultCloudQ");
                         Model.ConfigurationFile.RemoveSetting("defaultCloudQ_VR");
-                        Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Default MSFS settings reset successful. Removed back up default MSFS settings from MSFS2020_AutoFPS config file.");
+                        if (Model.isMSFS2024)
+                        {
+                            Model.ConfigurationFile.RemoveSetting("defaultDynSet");
+                            Model.ConfigurationFile.RemoveSetting("defaultDynSetVR");
+                        }
+                        Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Default MSFS settings reset successful. Removed back up default MSFS settings from DynamicLOD_ResetEdition" + (Model.isMSFS2024 ? "2024" : "") + " config file.");
                     }
-                    else Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Default MSFS settings reset failed. Retained back up default MSFS settings in MSFS2020_AutoFPS config file.");
+                    else Logger.Log(LogLevel.Information, "ServiceController:ServiceLoop", "Default MSFS settings reset failed. Retained back up default MSFS settings in DynamicLOD_ResetEdition" + (Model.isMSFS2024 ? "2024" : "") + " config file.");
                 }
+                else Model.AppEnabled = false;
 
                 Model.IsSessionRunning = false;
 

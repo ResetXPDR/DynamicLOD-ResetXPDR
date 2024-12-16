@@ -8,6 +8,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
+using System.Reflection;
 
 namespace DynamicLOD_ResetEdition
 {
@@ -18,6 +19,7 @@ namespace DynamicLOD_ResetEdition
         public int ConfigVersion { get; set; }
         public bool ServiceExited { get; set; } = false;
         public bool CancellationRequested { get; set; } = false;
+        public bool AppEnabled { get; set; } = true;
 
         public bool IsSimRunning { get; set; } = false;
         public bool IsSessionRunning { get; set; } = false;
@@ -27,6 +29,7 @@ namespace DynamicLOD_ResetEdition
         public float AltLead { get; set; }
         public bool OnGround { get; set; } = true;
         public bool ForceEvaluation { get; set; } = false;
+        public bool ReloadAppWindowSettings { get; set; } = false;
 
         public int SelectedProfile { get; set; } = 0;
         public string ProfileName1 { get; set; }
@@ -60,6 +63,8 @@ namespace DynamicLOD_ResetEdition
         public float DefaultOLOD_VR { get; set; } = 100;
         public int DefaultCloudQ { get; set; } = 2;
         public int DefaultCloudQ_VR { get; set; } = 2;
+        public bool DefaultDynSet { get; set; } = false;
+        public bool DefaultDynSetVR { get; set; } = false;
         public bool DefaultSettingsRead { get; set; } = false;
         public int LodStepMaxInc { get; set; }
         public int LodStepMaxDec { get; set; }
@@ -105,13 +110,22 @@ namespace DynamicLOD_ResetEdition
         public long OffsetPointerTlod { get; set; }
         public long OffsetPointerTlodVr { get; set; }
         public long OffsetPointerOlod { get; set; }
+        public long OffsetPointerOlodVr { get; set; }
         public long OffsetPointerCloudQ { get; set; }
         public long OffsetPointerCloudQVr { get; set; }
         public long OffsetPointerVrMode { get; set; }
         public long OffsetPointerFgMode { get; set; }
+        public long OffsetPointerAnsio { get; set; }
+        public long OffsetPointerDynSet { get; set; }
+        public long OffsetPointerDynSetVr { get; set; }
+        public long OffsetPointerCubeMap { get; set; }
+        public long OffsetPointerWaterWaves { get; set; }
+        public bool OffsetSearchingActive { get; set; }
 
         public const bool TestVersion = false;
         public const string TestVariant = "-test1";
+        public bool isMSFS2024 = false;
+        public bool isMSFS2024_last = false;
 
 
         public ConfigurationFile ConfigurationFile = new();
@@ -121,12 +135,26 @@ namespace DynamicLOD_ResetEdition
             if (!TestVersion && File.GetLastWriteTime(App.ConfigFile) > DateTime.Now.AddSeconds(-10)) resetWindowPosition = true;
             CurrentPairTLOD = 0;
             CurrentPairOLOD = 0;
+            if ((File.Exists(App.msConfigStore) || File.Exists(App.msConfigSteam) && !(File.Exists(App.msConfigStore2024) || File.Exists(App.msConfigSteam2024))))
+            {
+                isMSFS2024 = isMSFS2024_last = false;
+            }
+            else if (!(File.Exists(App.msConfigStore) || File.Exists(App.msConfigSteam) && (File.Exists(App.msConfigStore2024) || File.Exists(App.msConfigSteam2024))))
+            {
+                isMSFS2024 = isMSFS2024_last = true;
+            }
+            else if (new FileInfo(App.ConfigFile2024).LastWriteTime > new FileInfo(App.ConfigFile).LastWriteTime)
+            {
+                isMSFS2024 = isMSFS2024_last = true;
+            }
             LoadConfiguration();
         }
 
-        protected void LoadConfiguration()
+        public bool LoadConfiguration()
         {
-            ConfigurationFile.LoadConfiguration();
+            bool ConfigFileChanged = false;
+            if (IsSimRunning) isMSFS2024 = isMSFS2024_last = IPCManager.IsSim2024();
+            ConfigFileChanged = ConfigurationFile.LoadConfiguration(isMSFS2024);
 
             LogLevel = Convert.ToString(ConfigurationFile.GetSetting("logLevel", "Debug"));
             MfLvarsPerFrame = Convert.ToInt32(ConfigurationFile.GetSetting("mfLvarPerFrame", "15"));
@@ -147,7 +175,7 @@ namespace DynamicLOD_ResetEdition
             PauseMSFSFocusLost = Convert.ToBoolean(ConfigurationFile.GetSetting("PauseMSFSFocusLost", "false"));
             CruiseLODUpdates = Convert.ToBoolean(ConfigurationFile.GetSetting("CruiseLODUpdates", "false"));
             DecCloudQ = Convert.ToBoolean(ConfigurationFile.GetSetting("DecCloudQ", "false"));
-            SimBinary = Convert.ToString(ConfigurationFile.GetSetting("simBinary", "FlightSimulator"));
+            SimBinary = Convert.ToString(ConfigurationFile.GetSetting("simBinary", isMSFS2024 ? "FlightSimulator2024" : "FlightSimulator"));
             SimModule = Convert.ToString(ConfigurationFile.GetSetting("simModule", "WwiseLibPCx64P.dll"));
             UseTargetFPS = Convert.ToBoolean(ConfigurationFile.GetSetting("useTargetFps", "true"));
             TargetFPS_PC = Convert.ToInt32(ConfigurationFile.GetSetting("targetFpsPC", "30"));
@@ -167,15 +195,27 @@ namespace DynamicLOD_ResetEdition
             MinOLOD = Convert.ToSingle(ConfigurationFile.GetSetting("minOLod", "100"), new RealInvariantFormat(ConfigurationFile.GetSetting("minOLod", "100")));
             LodStepMaxInc = Convert.ToInt32(ConfigurationFile.GetSetting("LodStepMaxInc", "5"));
             LodStepMaxDec = Convert.ToInt32(ConfigurationFile.GetSetting("LodStepMaxDec", "5"));
-            OffsetModuleBase = Convert.ToInt64(ConfigurationFile.GetSetting("offsetModuleBase", "0x004B2368"), 16);
-            OffsetPointerMain = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerMain", "0x3D0"), 16);
-            OffsetPointerTlod = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerTlod", "0xC"), 16);
-            OffsetPointerTlodVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerTlodVr", "0x114"), 16);
-            OffsetPointerOlod = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerOlod", "0xC"), 16);
-            OffsetPointerCloudQ = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCloudQ", "0x44"), 16);
-            OffsetPointerCloudQVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCloudQVr", "0x108"), 16);
-            OffsetPointerVrMode = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerVrMode", "0x1C"), 16);
-            OffsetPointerFgMode = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerFgMode", "0x4A"), 16);
+            OffsetModuleBase = Convert.ToInt64(ConfigurationFile.GetSetting("offsetModuleBase", isMSFS2024 ? (File.Exists(App.msConfigSteam2024) ? "0x0A241C60" : "0x09F0DC40") : "0x004B2368"), 16);
+            OffsetPointerTlod = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerTlod", isMSFS2024 ? "0x358" : "0xC"), 16);
+            OffsetPointerTlodVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerTlodVr", isMSFS2024 ? "0x480" : "0x114"), 16);
+            OffsetPointerOlod = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerOlod", isMSFS2024 ? "0x36C" : "0xC"), 16);
+            OffsetPointerCloudQ = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCloudQ", isMSFS2024 ? "0x3A4" : "0x44"), 16);
+            OffsetPointerCloudQVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCloudQVr", isMSFS2024 ? "0x4CC" : "0x108"), 16);
+            OffsetPointerVrMode = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerVrMode", isMSFS2024 ? "0x334" : "0x1C"), 16);
+            OffsetPointerFgMode = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerFgMode", isMSFS2024 ? "0x304" : "0x4A"), 16);
+            OffsetPointerAnsio = -Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerAnsio", (isMSFS2024 ? "0x20" : "0x18")), 16);
+            if (isMSFS2024)
+            {
+                OffsetPointerOlodVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerOlodVR", "0x494"), 16);
+                OffsetPointerDynSet = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerDynSet", "0x328"), 16);
+                OffsetPointerDynSetVr = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerDynSetVR", "0x329"), 16);
+                OffsetPointerCubeMap = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerCubeMap", "0x6C"), 16);
+            }
+            else
+            {
+                OffsetPointerMain = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerMain", "0x3D0"), 16);
+                OffsetPointerWaterWaves = Convert.ToInt64(ConfigurationFile.GetSetting("offsetPointerWaterWaves", "0x3C"), 16);
+            }
             SimMinLOD = Convert.ToSingle(ConfigurationFile.GetSetting("simMinLod", "10"), new RealInvariantFormat(ConfigurationFile.GetSetting("simMinLod", "10")));
             if (Boolean.TryParse(ConfigurationFile.GetSetting("LodStepMax", "false"), out bool flag)) LodStepMax = Convert.ToBoolean(ConfigurationFile.GetSetting("LodStepMax", "false"));
             else LodStepMax = false;
@@ -211,6 +251,7 @@ namespace DynamicLOD_ResetEdition
 
                 SetSetting("ConfigVersion", Convert.ToString(BuildConfigVersion));
             }
+            return ConfigFileChanged;
         }
 
         public float GetGPUUsage()
@@ -316,7 +357,7 @@ namespace DynamicLOD_ResetEdition
         public void DetectGraphics()
         {
             VrModeActive = MemoryAccess.IsVrModeActive();
-            FgModeActive = MemoryAccess.IsFgModeActive();
+            FgModeActive = MemoryAccess.IsFgModeEnabled();
             if (Process.GetProcessesByName("LosslessScaling").Length > 0)
             {
                 LsModeActive = true;
@@ -325,12 +366,12 @@ namespace DynamicLOD_ResetEdition
             else LsModeActive = false;
         }
 
-        public static int GetLSModeMultiplier()
+        public int GetLSModeMultiplier()
         {
             string xmlFilePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Lossless Scaling\Settings.xml";
             XDocument xmlDoc = XDocument.Load(xmlFilePath);
             var profile = xmlDoc.Descendants("Profile")
-                        .FirstOrDefault(p => p.Element("Title")?.Value == "MSFS2020");
+                        .FirstOrDefault(p => p.Element("Title")?.Value == (isMSFS2024 ? "MSFS2024" : "MSFS2020"));
             if (profile == null) profile = xmlDoc.Descendants("Profile")
                         .FirstOrDefault(p => p.Element("Title")?.Value == "Default");
             if (profile != null)

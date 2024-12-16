@@ -18,8 +18,14 @@ namespace DynamicLOD_ResetEdition
         private TaskbarIcon notifyIcon;
 
         public static new App Current => Application.Current as App;
-        public static string ConfigFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD_ResetEdition\DynamicLOD_ResetEdition.config";
-        public static string AppDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD_ResetEdition\bin";
+        public static readonly string ConfigFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD_ResetEdition\DynamicLOD_ResetEdition.config";
+        public static readonly string ConfigFile2024 = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD_ResetEdition\DynamicLOD2024_ResetEdition.config";
+        public static readonly string AppDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DynamicLOD_ResetEdition\bin";
+        public static readonly string msConfigStore = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalCache\UserCfg.opt";
+        public static readonly string msConfigSteam = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\Microsoft Flight Simulator\UserCfg.opt";
+        public static readonly string msConfigStore2024 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalCache\UserCfg.opt";
+        public static readonly string msConfigSteam2024 = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\Microsoft Flight Simulator 2024\UserCfg.opt";
+
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -35,6 +41,20 @@ namespace DynamicLOD_ResetEdition
             if (Process.GetProcessesByName("DynamicLOD").Length > 0)
             {
                 MessageBox.Show("A pre-ResetEdition version of DynamicLOD is already running!", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Application.Current.Shutdown();
+                return;
+            }
+
+            if (Process.GetProcessesByName("MSFS_AutoFPS").Length > 0)
+            {
+                MessageBox.Show("MSFS_AutoFPS is already running!", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Application.Current.Shutdown();
+                return;
+            }
+
+            if (Process.GetProcessesByName("MSFS2024_AutoFPS").Length > 0)
+            {
+                MessageBox.Show("MSFS2024_AutoFPS is already running!", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
                 return;
             }
@@ -61,7 +81,7 @@ namespace DynamicLOD_ResetEdition
                 string ConfigFileDefault = Directory.GetCurrentDirectory() + @"\DynamicLOD_ResetEdition.config";
                 if (!File.Exists(ConfigFileDefault))
                 {
-                    MessageBox.Show("No Configuration File found! Closing ...", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("No MSFS 2020 Configuration File found! Closing ...", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     Application.Current.Shutdown();
                     return;
                 }
@@ -71,6 +91,20 @@ namespace DynamicLOD_ResetEdition
                 }
             }
 
+            if (!File.Exists(ConfigFile2024))
+            {
+                string ConfigFileDefault = Directory.GetCurrentDirectory() + @"\DynamicLOD2024_ResetEdition.config";
+                if (!File.Exists(ConfigFileDefault))
+                {
+                    MessageBox.Show("No MSFS 2024 Configuration File found! Closing ...", "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Application.Current.Shutdown();
+                    return;
+                }
+                else
+                {
+                    File.Copy(ConfigFileDefault, ConfigFile2024);
+                }
+            }
             Model = new();
             InitLog();
             InitSystray();
@@ -105,6 +139,28 @@ namespace DynamicLOD_ResetEdition
                     Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting cloud quality to {ServiceModel.CloudQualityText(Model.DefaultCloudQ)}  / VR  {ServiceModel.CloudQualityText(Model.DefaultCloudQ_VR)}");
                     Model.MemoryAccess.SetCloudQ(Model.DefaultCloudQ);
                     Model.MemoryAccess.SetCloudQ_VR(Model.DefaultCloudQ_VR);
+                    if (Model.isMSFS2024)
+                    {
+                        Logger.Log(LogLevel.Information, "App:OnExit", $"Resetting Dynamic Settings to PC {Model.DefaultDynSet} / VR {Model.DefaultDynSetVR}");
+                        Model.MemoryAccess.SetDynSet(Model.DefaultDynSet);
+                        Model.MemoryAccess.SetDynSetVR(Model.DefaultDynSetVR);
+                    }
+                    if (Model.MemoryAccess.GetTLOD_PC() == Model.DefaultTLOD) // As long as one setting restoration stuck
+                    {
+                        Model.ConfigurationFile.RemoveSetting("defaultTLOD");
+                        Model.ConfigurationFile.RemoveSetting("defaultTLOD_VR");
+                        Model.ConfigurationFile.RemoveSetting("defaultOLOD");
+                        Model.ConfigurationFile.RemoveSetting("defaultOLOD_VR");
+                        Model.ConfigurationFile.RemoveSetting("defaultCloudQ");
+                        Model.ConfigurationFile.RemoveSetting("defaultCloudQ_VR");
+                        if (Model.isMSFS2024)
+                        {
+                            Model.ConfigurationFile.RemoveSetting("defaultDynSet");
+                            Model.ConfigurationFile.RemoveSetting("defaultDynSetVR");
+                        }
+                        Logger.Log(LogLevel.Information, "App:OnExit", "Default MSFS settings reset successful. Removed back up default MSFS settings from DynamicLOD_ResetEdition" + (Model.isMSFS2024 ? "2024" : "") + " config file.");
+                    }
+                    else Logger.Log(LogLevel.Information, "App:OnExit", "Default MSFS settings reset failed. Retained back up default MSFS settings in DynamicLOD_ResetEdition" + (Model.isMSFS2024 ? "2024" : "") + " config file.");
                 }
             }
             notifyIcon?.Dispose();
@@ -124,7 +180,7 @@ namespace DynamicLOD_ResetEdition
 
         protected void InitLog()
         {
-            string logFilePath = @"..\log\" + Model.GetSetting("logFilePath", "DynamicLOD_ResetEdition.log");
+            string logFilePath = @"..\log\DynamicLOD_ResetEdition.log";
             string logLevel = Model.GetSetting("logLevel", "Debug"); ;
             LoggerConfiguration loggerConfiguration = new LoggerConfiguration().WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 3,
                                                     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message} {NewLine}{Exception}");

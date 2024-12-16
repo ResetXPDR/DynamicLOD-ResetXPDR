@@ -11,6 +11,7 @@ namespace Installer
 
         public bool IsRunning { get; private set; } = false;
         public bool HasError { get; private set; } = false;
+        private int WasmErrorCount = 0; 
 
         public bool CfgDesktopLink { get; set; } = false;
         public AutoStart CfgAutoStart { get; set; } = AutoStart.NONE;
@@ -25,8 +26,10 @@ namespace Installer
             IsRunning = true;
 
             InstallDotNet();
-            if (!HasError)
+            if (!HasError && File.Exists(Parameters.msConfigStore) || File.Exists(Parameters.msConfigSteam))
                 InstallWasm();
+            if (!HasError && File.Exists(Parameters.msConfigStore2024) || File.Exists(Parameters.msConfigSteam2024))
+                InstallWasm(true);
             if (!HasError)
                 InstallApp();
             if (!HasError)
@@ -60,14 +63,19 @@ namespace Installer
             }
         }
 
-        protected void InstallWasm()
+        protected void InstallWasm(bool isMSFS2024 = false)
         {
-            messageList.Enqueue("\nChecking MobiFlight WASM/Event Module ...");
+            messageList.Enqueue("\nChecking MobiFlight WASM/Event Module for " + (isMSFS2024 ? "MSFS2024" : "MSFS2020") + "...");
 
-            if (!InstallerFunctions.CheckInstalledMSFS(out string packagePath))
+            if (!InstallerFunctions.CheckInstalledMSFS(isMSFS2024, out string packagePath))
             {
-                HasError = true;
-                messageList.Enqueue("Could not determine Package Path!");
+                MessageBox.Show("Could not determine Community folder location for " + (isMSFS2024 ? "MSFS2024" : "MSFS2020") + ". App may not work correctly with " + (isMSFS2024 ? "MSFS2024" : "MSFS2020") + "!", "Unable to install Wasm!", MessageBoxButton.OK, MessageBoxImage.Warning);
+                messageList.Enqueue("Could not determine Community folder location for " + (isMSFS2024 ? "MSFS2024" : "MSFS2020") + "!");
+                if (++WasmErrorCount == 2)
+                {
+                    messageList.Enqueue("\nUnable to install Wasm for either MSFS2020 or MSFS2024. \nCheck correct installation of at least one of these MSFS versions!");
+                    HasError = true;
+                }
                 return;
             }
 
@@ -78,7 +86,7 @@ namespace Installer
             }
             else
             {
-                if (!InstallerFunctions.GetProcessRunning("FlightSimulator"))
+                if (!InstallerFunctions.GetProcessRunning(isMSFS2024 ? "FlightSimulator2024" : "FlightSimulator"))
                 {
                     messageList.Enqueue("Module not installed or outdated!");
                     if (Directory.Exists(packagePath + @"\" + Parameters.wasmMobiName))

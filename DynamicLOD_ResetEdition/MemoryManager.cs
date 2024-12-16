@@ -1,6 +1,8 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Shapes;
@@ -19,10 +21,11 @@ namespace DynamicLOD_ResetEdition
         private long addrCloudQ_VR;
         private long addrVrMode;
         private long addrFgMode;
-        private long offsetPointerAnsioFilter = -0x18;
-        private long offsetWaterWaves = 0x3C;
+        private long addrDynSet;
+        private long addrDynSetVR;
         private bool allowMemoryWrites = false;
         private bool isDX12 = false;
+        private long moduleBase;
 
         public MemoryManager(ServiceModel model)
         {
@@ -30,22 +33,47 @@ namespace DynamicLOD_ResetEdition
             {
                 this.Model = model;
 
-                MemoryInterface.Attach(Model.SimBinary);
+                if (Model.isMSFS2024)
+                {
+                    MemoryInterface.Attach("FlightSimulator2024");
+                    moduleBase = MemoryInterface.GetModuleAddress("FlightSimulator2024.exe");
+                }
+                else
+                {
+                    MemoryInterface.Attach("FlightSimulator");
+                    moduleBase = MemoryInterface.GetModuleAddress(Model.SimModule);
+                }
 
                 GetActiveDXVersion();
                 Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Trying offsetModuleBase: 0x{model.OffsetModuleBase.ToString("X8")}");
-                GetMSFSMemoryAddresses();
-                if (addrTLOD > 0) MemoryBoundaryTest(true);
-                else Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", "Failed first TLOD address setting attempt");
+                // Set initial base memory address to the one contained in the config file
+                if (Model.isMSFS2024) GetMSFSMemoryAddresses2024(Model.OffsetModuleBase);
+                else GetMSFSMemoryAddresses();
+                // Run the memory boundary test to confirm that the offset is still valid
+                MemoryBoundaryTest();
+                // If the memory boundary test fails, try searching for a new valid offset
                 if (!allowMemoryWrites)
                 {
                     Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Boundary tests failed - possible MSFS memory map change");
-                    ModuleOffsetSearch();
+                    if (model.isMSFS2024) ModuleOffsetSearch2024();
+                    else ModuleOffsetSearch();
                 }
                 else Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Boundary tests passed - memory writes enabled");
-                if (!allowMemoryWrites) Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Boundary test failed - memory writes disabled");
-                GetMSFSMemoryAddresses();
-
+                // If a valid offset is still not found, leave the app disabled, notify the user and log detailed initial offset memory boundary test data
+                if (!allowMemoryWrites)
+                {
+                    Logger.Log(LogLevel.Debug, "MemoryManager:MemoryManager", $"Module offset search failed to find a valid offset - memory writes disabled");
+                    if (Model.isMSFS2024) GetMSFSMemoryAddresses2024(Model.OffsetModuleBase);
+                    else GetMSFSMemoryAddresses();
+                    MemoryBoundaryTest(true);
+                }
+                // Otherwise reload the valid memory addresses and log the settings' initial values
+                else
+                {
+                    if (model.isMSFS2024) GetMSFSMemoryAddresses2024(Model.OffsetModuleBase);
+                    else GetMSFSMemoryAddresses();
+                    VerifyAddresses();
+                } 
             }
             catch (Exception ex)
             {
@@ -64,7 +92,7 @@ namespace DynamicLOD_ResetEdition
             // 0x004AF3C8 was muumimorko version offsetBase
             // 0x004B2368 was Fragtality version offsetBase
             Logger.Log(LogLevel.Debug, "MemoryManager:ModuleOffsetSearch", $"OffsetModuleBase search started");
-
+            
             while (offset < 0x100000 && !offsetFound)
             {
                 addrTLOD = MemoryInterface.ReadMemory<long>(moduleBase + offsetBase + offset) + Model.OffsetPointerMain;
@@ -91,36 +119,109 @@ namespace DynamicLOD_ResetEdition
             else Logger.Log(LogLevel.Debug, "MemoryManager:ModuleOffsetSearch", $"OffsetModuleBase not found after {offset} iterations");
 
         }
+
+        // From MSFS2024_AutoFPS_kayJay1c6 code 
+        private void ModuleOffsetSearch2024()
+        {
+            Logger.Log(LogLevel.Debug, "MemoryManager:ModuleOffsetSearch", "Starting module offset search");
+
+            if (moduleBase == 0)
+            {
+                Logger.Log(LogLevel.Error, "MemoryManager:ModuleOffsetSearch", "Failed to get module base address");
+                return;
+            }
+
+            // 1.1.10.0 offsets: Steam 0x0A14F010, MS Store 0x09E18000
+            // 1.2.7.0 offsets: Steam 0x0A241C60, MS Store 0x09F0DC40
+            
+            // Define search range (adjust as needed)
+            long startOffset = Model.isMSFS2024 && File.Exists(App.msConfigSteam2024) ? 0x0A000000 : 0x09B00000; // Start 4 MB before the expected offset for Steam and MS Store version respectively
+            long endOffset = startOffset + 0x01000000;   // End 12 MB after the expected offset
+            long step = 0x10;              // Keep small step size for precision
+
+            int attempts = 0;
+            Model.OffsetSearchingActive = true;
+            for (long testOffset = startOffset; testOffset < endOffset; testOffset += step)
+            {
+                attempts++;
+
+                try
+                {
+                    GetMSFSMemoryAddresses2024(testOffset);
+                    MemoryBoundaryTest();
+
+                    if (allowMemoryWrites)
+                    {
+                        Logger.Log(LogLevel.Debug, "MemoryManager:ModuleOffsetSearch",
+                            $"Found valid module offset: 0x{testOffset:X8} after {attempts} attempts");
+                        Model.SetSetting("offsetModuleBase", "0x" + (testOffset).ToString("X8"));
+                        Logger.Log(LogLevel.Debug, "MemoryManager:ModuleOffsetSearch", $"New offsetModuleBase found and saved: 0x{(testOffset).ToString("X8")}");
+
+                        Model.OffsetSearchingActive = false;
+                        return; // Exit the method if a valid offset is found
+                    }
+                }
+                catch
+                {
+                    // Ignore exceptions and continue searching
+                }
+
+                // Log progress every 1 MB
+                if (attempts % 262144 == 0)
+                {
+                    Logger.Log(LogLevel.Debug, "MemoryManager:ModuleOffsetSearch",
+                        $"Searched {(testOffset - startOffset) / 1024 / 1024} MB... Current offset: 0x{testOffset:X8}");
+                }
+            }
+
+            Logger.Log(LogLevel.Error, "MemoryManager:ModuleOffsetSearch",
+                $"Failed to find a valid module offset after {attempts} attempts");
+            Model.OffsetSearchingActive = false;
+        }
+
         private void MemoryBoundaryTest(bool logResult = false)
         {
             // Boundary check a few known setting memory addresses to see if any fail which likely indicates MSFS memory map has changed
-            if (GetTLOD_PC() < 10 || GetTLOD_PC() > 1000 || GetTLOD_VR() < 10 || GetTLOD_VR() > 1000
+            if (addrTLOD < 0 || GetTLOD_PC() < 10 || GetTLOD_PC() > 1000 || GetTLOD_VR() < 10 || GetTLOD_VR() > 1000
                 || GetOLOD_PC() < 10 || GetOLOD_PC() > 1000 || GetOLOD_VR() < 10 || GetOLOD_VR() > 1000
                 || GetCloudQ_PC() < 0 || GetCloudQ_PC() > 3 || GetCloudQ_VR() < 0 || GetCloudQ_VR() > 3
                 || MemoryInterface.ReadMemory<int>(addrVrMode) < 0 || MemoryInterface.ReadMemory<int>(addrVrMode) > 1
-                || MemoryInterface.ReadMemory<int>(addrTLOD + offsetPointerAnsioFilter) < 1 || MemoryInterface.ReadMemory<int>(addrTLOD + offsetPointerAnsioFilter) > 16
-                || !(MemoryInterface.ReadMemory<int>(addrTLOD + offsetWaterWaves) == 128 || MemoryInterface.ReadMemory<int>(addrTLOD + offsetWaterWaves) == 256 || MemoryInterface.ReadMemory<int>(addrTLOD + offsetWaterWaves) == 512))
+                || MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerAnsio) < 0 || MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerAnsio) > 16
+                || (!Model.isMSFS2024 && !(MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerWaterWaves) == 128 || MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerWaterWaves) == 256 || MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerWaterWaves) == 512))
+                || (Model.isMSFS2024 && !(MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerCubeMap) >= 64 || MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerCubeMap) % 32 == 0 || MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerCubeMap) <= 384)))
+                // Even though valid cube map values are 128, 196, 256 and 384 in MSFS 2024, one user encountered a value of 64 so the cube map test has been expanded to cover passing with this value, even if not technically a valid setting
             {
                 allowMemoryWrites = false;
             }
             else allowMemoryWrites = true;
             if (logResult && (ServiceModel.TestVersion || !allowMemoryWrites))
             {
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"TLOD PC: {GetTLOD_PC()}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"TLOD VR: {GetTLOD_VR()}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"OLOD PC: {GetOLOD_PC()}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"OLOD VR: {GetOLOD_VR()}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Cloud Quality PC: {ServiceModel.CloudQualityText(GetCloudQ_PC())}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Cloud Quality VR: {ServiceModel.CloudQualityText(GetCloudQ_VR())}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"VR Mode: {MemoryInterface.ReadMemory<int>(addrVrMode)}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Ansio Filter: {MemoryInterface.ReadMemory<int>(addrTLOD + offsetPointerAnsioFilter)}");
-                Logger.Log(LogLevel.Debug, "MemoryManager:BoundaryTest", $"Water Waves: {MemoryInterface.ReadMemory<int>(addrTLOD + offsetWaterWaves)}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address TLOD: 0x{addrTLOD:X}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address OLOD: 0x{addrOLOD:X}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address CloudQ: 0x{addrCloudQ:X}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address TLOD VR: 0x{addrTLOD_VR:X}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address OLOD VR: 0x{addrOLOD_VR:X}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address CloudQ VR: 0x{addrCloudQ_VR:X}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address VrMode: 0x{addrVrMode:X}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address FgMode: 0x{addrFgMode:X}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address Ansio Filter: 0x{(addrTLOD + Model.OffsetPointerAnsio):X}");
+                if (Model.isMSFS2024) Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address Cubemap Reflections: 0x{(addrTLOD + Model.OffsetPointerCubeMap):X}");
+                else Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Address Water Waves: 0x{(addrTLOD + Model.OffsetPointerWaterWaves):X}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"TLOD PC: {GetTLOD_PC()}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"TLOD VR: {GetTLOD_VR()}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"OLOD PC: {GetOLOD_PC()}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"OLOD VR: {GetOLOD_VR()}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Cloud Quality PC: {ServiceModel.CloudQualityText(GetCloudQ_PC())}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Cloud Quality VR: {ServiceModel.CloudQualityText(GetCloudQ_VR())}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"VR Mode: {MemoryInterface.ReadMemory<int>(addrVrMode)}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"FG Mode: {MemoryInterface.ReadMemory<int>(addrFgMode)}");
+                Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Ansio Filter: {MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerAnsio)}X");
+                if (Model.isMSFS2024) Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Cubemap Reflections: {MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerCubeMap)}");
+                else Logger.Log(LogLevel.Debug, "MemoryManager:MemoryBoundaryTest", $"Water Waves: {MemoryInterface.ReadMemory<int>(addrTLOD + Model.OffsetPointerWaterWaves)}");
             }
         }
         private void GetMSFSMemoryAddresses()
         {
-            long moduleBase = MemoryInterface.GetModuleAddress(Model.SimModule);
-
             addrTLOD = MemoryInterface.ReadMemory<long>(moduleBase + Model.OffsetModuleBase) + Model.OffsetPointerMain;
             if (addrTLOD > 0)
             {
@@ -145,28 +246,114 @@ namespace DynamicLOD_ResetEdition
                 }
             }
         }
+
+        private bool GetMSFSMemoryAddresses2024(long BaseOffset)
+        {
+            try
+            {
+                long pointerBase = moduleBase + BaseOffset;
+                long pointer = pointerBase;
+
+                // Calculate addresses
+                addrTLOD = CalculateAddress(pointer, Model.OffsetPointerTlod, "TLOD");
+                addrOLOD = CalculateAddress(pointer, Model.OffsetPointerOlod, "OLOD");
+                addrTLOD_VR = CalculateAddress(pointer, Model.OffsetPointerTlodVr, "TLOD VR");
+                addrOLOD_VR = CalculateAddress(pointer, Model.OffsetPointerOlodVr, "OLOD VR"); 
+
+                // Calculate other addresses
+                addrVrMode = CalculateAddress(pointer, Model.OffsetPointerVrMode, "VR Mode");
+                addrCloudQ = CalculateAddress(pointer, Model.OffsetPointerCloudQ, "CloudQ");
+                addrCloudQ_VR = CalculateAddress(pointer, Model.OffsetPointerCloudQVr, "CloudQ VR");
+                addrFgMode = CalculateAddress(pointer, Model.OffsetPointerFgMode, "FG Mode");
+                addrDynSet = CalculateAddress(pointer, Model.OffsetPointerDynSet, "Dynamic Setting");
+                addrDynSetVR = CalculateAddress(pointer, Model.OffsetPointerDynSetVr, "Dynamic Setting VR");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "GetMSFSMemoryAddresses", $"Error: {ex.Message}");
+                return false;
+            }
+        }
+
+        private long CalculateAddress(long baseAddress, long offset, string propertyName)
+        {
+            long address = baseAddress + offset;
+            //if (allowMemoryWrites) Logger.Log(LogLevel.Debug, "Address Calculation", $"{propertyName} Address: 0x{address:X}");
+            return address;
+        }
+
+        private void VerifyAddresses()
+        {
+            VerifyAddress(addrTLOD, "TLOD", "float");
+            VerifyAddress(addrOLOD, "OLOD", "float");
+            VerifyAddress(addrTLOD_VR, "TLOD VR", "float");
+            VerifyAddress(addrOLOD_VR, "OLOD VR", "float");
+            Logger.Log(LogLevel.Debug, "Address Verification", $"CloudQ Value: {ServiceModel.CloudQualityText(GetCloudQ_PC())}");
+            Logger.Log(LogLevel.Debug, "Address Verification", $"CloudQ VR Value: {ServiceModel.CloudQualityText(GetCloudQ_VR())}");
+            VerifyAddress(addrVrMode, "VR Mode", "bool");
+            VerifyAddress(addrFgMode, "FG Mode", "bool");
+            if (Model.isMSFS2024)
+            {
+                VerifyAddress(addrDynSet, "Dynamic Setting", "bool");
+                VerifyAddress(addrDynSetVR, "Dynamic Setting VR", "bool");
+            }
+        }
+
+        private void VerifyAddress(long address, string propertyName, string dataType)
+        {
+            try
+            {
+                if (dataType == "float")
+                {
+                    float value = (float)Math.Round(MemoryInterface.ReadMemory<float>(address) * 100.0f);
+                    Logger.Log(LogLevel.Debug, "Address Verification", $"{propertyName} Value: {value}");
+                }
+                else if (dataType == "int")
+                {
+                    int value = MemoryInterface.ReadMemory<int>(address);
+                    Logger.Log(LogLevel.Debug, "Address Verification", $"{propertyName} Value: {value}");
+                }
+                else if (dataType == "bool")
+                {
+                    bool value = MemoryInterface.ReadMemory<byte>(address) == 1;
+                    Logger.Log(LogLevel.Debug, "Address Verification", $"{propertyName} Value: {value}");
+                }
+                else Logger.Log(LogLevel.Debug, "Address Verification", $"{propertyName} Unknown data type");
+
+                }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "Address Verification", $"Failed to read {propertyName}: {ex.Message}");
+            }
+        }
+
         private void GetActiveDXVersion()
         {
             string filecontents;
-            string MSFSOptionsFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\Microsoft Flight Simulator\UserCfg.opt";
-            if (File.Exists(MSFSOptionsFile))
+            if (Model.isMSFS2024)
             {
-                StreamReader sr = new StreamReader(MSFSOptionsFile);
+                isDX12 = true;
+                Logger.Log(LogLevel.Debug, "MemoryManager:GetActiveDXVersion", (File.Exists(App.msConfigSteam2024) ? "Steam" : "MS Store") + $" MSFS2024 detected - DX12");
+            }
+            else if (File.Exists(App.msConfigSteam))
+            {
+                StreamReader sr = new StreamReader(App.msConfigSteam);
                 filecontents = sr.ReadToEnd();
                 if (filecontents.Contains("PreferD3D12 1")) isDX12 = true;
                 sr.Close();
-                Logger.Log(LogLevel.Debug, "MemoryManager:GetActiveDXVersion", $"Steam MSFS version detected - " + (isDX12 ? "DX12" : "DX11"));
+                Logger.Log(LogLevel.Debug, "MemoryManager:GetActiveDXVersion", $"Steam MSF2020 version detected - " + (isDX12 ? "DX12" : "DX11"));
             }
             else
             {
-                MSFSOptionsFile = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalCache\UserCfg.opt";
-                if (File.Exists(MSFSOptionsFile))
+                if (File.Exists(App.msConfigStore))
                 {
-                    StreamReader sr = new StreamReader(MSFSOptionsFile);
+                    StreamReader sr = new StreamReader(App.msConfigStore);
                     filecontents = sr.ReadToEnd();
                     if (filecontents.Contains("PreferD3D12 1")) isDX12 = true;
                     sr.Close();
-                    Logger.Log(LogLevel.Debug, "MemoryManager:GetActiveDXVersion", $"MS Store MSFS version detected - " + (isDX12 ? "DX12" : "DX11"));
+                    Logger.Log(LogLevel.Debug, "MemoryManager:GetActiveDXVersion", $"MS Store MSFS2020 version detected - " + (isDX12 ? "DX12" : "DX11"));
                 }
             }
 
@@ -180,7 +367,7 @@ namespace DynamicLOD_ResetEdition
         {
             try
             {
-                return MemoryInterface.ReadMemory<int>(addrVrMode) == 1;
+                return MemoryInterface.ReadMemory<int>(addrVrMode) == 1; 
             }
             catch (Exception ex)
             {
@@ -210,22 +397,22 @@ namespace DynamicLOD_ResetEdition
             }
             return false;
         }
-
+ 
         public bool IsDX12()
         {
             return isDX12;
         }
-        public bool IsFgModeActive()
+        public bool IsFgModeEnabled()
         {
             try
             {
-                if (isDX12 && !Model.MemoryAccess.IsVrModeActive())
+                if (isDX12 && !Model.MemoryAccess.IsVrModeActive()) 
                     return MemoryInterface.ReadMemory<byte>(addrFgMode) == 1;
                 else return false;
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error, "MemoryManager:IsFgModeActive", $"Exception {ex}: {ex.Message}");
+                Logger.Log(LogLevel.Error, "MemoryManager:IsFgModeEnabled", $"Exception {ex}: {ex.Message}");
             }
 
             return false;
@@ -312,6 +499,62 @@ namespace DynamicLOD_ResetEdition
             }
 
             return -1;
+        }
+        public bool GetDynSet()
+        {
+            try
+            {
+                return MemoryInterface.ReadMemory<byte>(addrDynSet) == 1;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "MemoryManager:GetDynSet", $"Exception {ex}: {ex.Message}");
+            }
+
+            return false;
+        }
+        public bool GetDynSetVR()
+        {
+            try
+            {
+                return MemoryInterface.ReadMemory<byte>(addrDynSetVR) == 1;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "MemoryManager:GetDynSetVR", $"Exception {ex}: {ex.Message}");
+            }
+
+            return false;
+        }
+
+        public void SetDynSet(bool value)
+        {
+            if (allowMemoryWrites)
+            {
+                try
+                {
+                    MemoryInterface.WriteMemory<byte>(addrDynSet, value);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Error, "MemoryManager:SetDynSet", $"Exception {ex}: {ex.Message}");
+                }
+            }
+        }
+
+        public void SetDynSetVR(bool value)
+        {
+            if (allowMemoryWrites)
+            {
+                try
+                {
+                    MemoryInterface.WriteMemory<byte>(addrDynSetVR, value);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Error, "MemoryManager:SetDynSetVR", $"Exception {ex}: {ex.Message}");
+                }
+            }
         }
         public void SetTLOD(float value)
         {

@@ -71,6 +71,11 @@ namespace DynamicLOD_ResetEdition
                         lblStatusMessage.Foreground = new SolidColorBrush(Colors.Green);
                         lblappUrl.Visibility = Visibility.Visible;
                     }
+                    else if (ServiceModel.TestVersion)
+                    {
+                        lblStatusMessage.Content = "Test version";
+                        lblStatusMessage.Foreground = new SolidColorBrush(Colors.Green);
+                    }
                     else
                     {
                         lblStatusMessage.Content = "Latest app version is installed";
@@ -78,7 +83,7 @@ namespace DynamicLOD_ResetEdition
                     }
                 }
             }
-            if (ServiceModel.TestVersion)
+            else if (ServiceModel.TestVersion)
             {
                 lblStatusMessage.Content = "Test version";
                 lblStatusMessage.Foreground = new SolidColorBrush(Colors.Green);
@@ -156,12 +161,14 @@ namespace DynamicLOD_ResetEdition
             chkOnTop.IsChecked = serviceModel.OnTop;
             chkCruiseLODUpdates.IsChecked = serviceModel.CruiseLODUpdates;
             chkLodStepMax.IsChecked = serviceModel.LodStepMax;
+            chkLodStepMax_WindowVisibility();
             chkUseTargetFPS.IsChecked = serviceModel.UseTargetFPS;
             if (serviceModel.ActiveGraphicsMode == "VR") txtTargetFPS.Text = Convert.ToString(serviceModel.TargetFPS_VR, CultureInfo.CurrentUICulture);
             else if (serviceModel.ActiveGraphicsMode == "LSFG") txtTargetFPS.Text = Convert.ToString(serviceModel.TargetFPS_LS, CultureInfo.CurrentUICulture);
             else if (serviceModel.ActiveGraphicsMode == "FG") txtTargetFPS.Text = Convert.ToString(serviceModel.TargetFPS_FG, CultureInfo.CurrentUICulture);
             else txtTargetFPS.Text = Convert.ToString(serviceModel.TargetFPS_PC, CultureInfo.CurrentUICulture);
             serviceModel.ActiveGraphicsModeChanged = false;
+            serviceModel.ReloadAppWindowSettings = false;
             cbProfile.SelectedIndex = serviceModel.SelectedProfile;
             dgTlodPairs.ItemsSource = serviceModel.PairsTLOD[serviceModel.SelectedProfile].ToDictionary(x => x.Item1, x => x.Item2);
             dgOlodPairs.ItemsSource = serviceModel.PairsOLOD[serviceModel.SelectedProfile].ToDictionary(x => x.Item1, x => x.Item2);
@@ -172,6 +179,7 @@ namespace DynamicLOD_ResetEdition
             txtConstraintTicks.Text = Convert.ToString(serviceModel.ConstraintTicks, CultureInfo.CurrentUICulture);
             txtConstraintDelayTicks.Text = Convert.ToString(serviceModel.ConstraintDelayTicks, CultureInfo.CurrentUICulture);
             chkDecCloudQ.IsChecked = serviceModel.DecCloudQ;
+            chkCloudRecoveryFPS_WindowVisibility();
             txtCloudRecoveryFPS.Text = Convert.ToString(serviceModel.CloudRecoveryFPS, CultureInfo.CurrentUICulture);
             chkPauseMSFSFocusLost.IsChecked = serviceModel.PauseMSFSFocusLost;
             txtLodStepMaxInc.Text = Convert.ToString(serviceModel.LodStepMaxInc, CultureInfo.CurrentUICulture);
@@ -204,12 +212,17 @@ namespace DynamicLOD_ResetEdition
             else
                 lblConnStatMSFS.Foreground = new SolidColorBrush(Colors.Red);
 
+            if (serviceModel.isMSFS2024)
+                lblConnStatMSFS.Content = "MSFS2024";
+            else
+                lblConnStatMSFS.Content = "MSFS2020";
+
             if (IPCManager.SimConnect != null && IPCManager.SimConnect.IsReady)
                 lblConnStatSimConnect.Foreground = new SolidColorBrush(Colors.DarkGreen);
             else
                 lblConnStatSimConnect.Foreground = new SolidColorBrush(Colors.Red);
 
-            if (serviceModel.IsSessionRunning)
+            if (serviceModel.IsSessionRunning && !serviceModel.OffsetSearchingActive)
                 lblConnStatSession.Foreground = new SolidColorBrush(Colors.DarkGreen);
             else
                 lblConnStatSession.Foreground = new SolidColorBrush(Colors.Red);
@@ -221,6 +234,17 @@ namespace DynamicLOD_ResetEdition
                 lblSimFPS.Content = GetAverageFPS().ToString("F0");
             else
                 lblSimFPS.Content = "n/a";
+
+            if (serviceModel.IsSimRunning)
+            {
+                btnRedetect.Content = "Redetect";
+                btnRedetect.ToolTip = "Redetect PC/FG/VR/LSFG graphics mode";
+            }
+            else
+            {
+                btnRedetect.Content = serviceModel.isMSFS2024 ? "24 -> 20" : "20 -> 24";
+                btnRedetect.ToolTip = "Switch config settings from MSFS " + (serviceModel.isMSFS2024 ? "2024 to " : "2020 to ") + (serviceModel.isMSFS2024 ? "2020" : "2024");
+            }
 
             if (serviceModel.MemoryAccess != null)
             {
@@ -259,6 +283,7 @@ namespace DynamicLOD_ResetEdition
                 lblSimOLOD.Content = "n/a";
                 lblSimCloudQs.Content = "n/a";
             }
+            if (serviceModel.ReloadAppWindowSettings) LoadSettings();
 
             if (serviceModel.UseTargetFPS && serviceModel.IsSessionRunning)
             {
@@ -347,7 +372,24 @@ namespace DynamicLOD_ResetEdition
             }
 
             UpdateStatus();
-            UpdateLiveValues();
+            if (serviceModel.AppEnabled) UpdateLiveValues();
+            else
+            {
+                lblStatusMessage.Content = "MSFS compatibility test failed - app disabled. See readme to resolve.";
+                lblStatusMessage.Foreground = new SolidColorBrush(Colors.Red);
+                lblSimTLOD.Content = "n/a";
+                lblSimTLOD.Foreground = new SolidColorBrush(Colors.Red);
+                lblSimOLOD.Content = "n/a";
+                lblSimOLOD.Foreground = new SolidColorBrush(Colors.Red);
+                lblSimCloudQs.Content = "n/a";
+                lblSimCloudQs.Foreground = new SolidColorBrush(Colors.Red);
+                lblSimFPS.Content = "n/a";
+                lblSimFPS.Foreground = new SolidColorBrush(Colors.Red);
+                lblPlaneAGL.Content = "n/a";
+                lblPlaneAGL.Foreground = new SolidColorBrush(Colors.Red);
+                lblPlaneVS.Content = "n/a";
+                lblPlaneVS.Foreground = new SolidColorBrush(Colors.Red);
+            }
             UpdateAircraftValues();
 
             if (serviceModel.IsSessionRunning)
@@ -702,8 +744,17 @@ namespace DynamicLOD_ResetEdition
         private void btnRedetect_Click(object sender, RoutedEventArgs e)
         {
             Logger.Log(LogLevel.Information, "MainWindow:btnRedetect_Click", "User");
-            serviceModel.DetectGraphics();
-            serviceModel.ActiveGraphicsModeChanged = true;
+            if (serviceModel.MemoryAccess != null)
+            {
+                serviceModel.DetectGraphics();
+                serviceModel.ActiveGraphicsModeChanged = true;
+            }
+            if (!serviceModel.IsSimRunning)
+            {
+                serviceModel.isMSFS2024 = serviceModel.isMSFS2024_last = !serviceModel.isMSFS2024;
+                serviceModel.LoadConfiguration();
+                serviceModel.ReloadAppWindowSettings = true;
+            }
         }
         private void chkOnTop_Click(object sender, RoutedEventArgs e)
         {

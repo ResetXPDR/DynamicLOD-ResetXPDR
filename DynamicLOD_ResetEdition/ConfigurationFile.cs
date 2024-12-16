@@ -8,6 +8,8 @@ namespace DynamicLOD_ResetEdition
     {
         private Dictionary<string, string> appSettings = new();
         private XmlDocument xmlDoc = new();
+        private string ConfigFile = App.ConfigFile;
+        private string ConfigFileLast = App.ConfigFile;
 
         public string this[string key]
         {
@@ -15,15 +17,22 @@ namespace DynamicLOD_ResetEdition
             set => SetSetting(key, value);
         }
 
-        public void LoadConfiguration()
+        public bool LoadConfiguration(bool isSim2024)
         {
+            ConfigFile = isSim2024 ? App.ConfigFile2024 : App.ConfigFile;
             xmlDoc = new();
-            xmlDoc.LoadXml(File.ReadAllText(App.ConfigFile));
+            xmlDoc.LoadXml(File.ReadAllText(ConfigFile));
 
             XmlNode xmlSettings = xmlDoc.ChildNodes[1];
             appSettings.Clear();
             foreach(XmlNode child in xmlSettings.ChildNodes)
                 appSettings.Add(child.Attributes["key"].Value, child.Attributes["value"].Value);
+            if (ConfigFile != ConfigFileLast )
+            {
+                ConfigFileLast = ConfigFile;
+                return true;
+            }
+            else return false;
         }
 
         public void SaveConfiguration()
@@ -31,7 +40,7 @@ namespace DynamicLOD_ResetEdition
             foreach (XmlNode child in xmlDoc.ChildNodes[1])
                 child.Attributes["value"].Value = appSettings[child.Attributes["key"].Value];
 
-            xmlDoc.Save(App.ConfigFile);
+            xmlDoc.Save(ConfigFile);
         }
         public bool SettingExists(string key)
         {

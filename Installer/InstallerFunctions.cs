@@ -14,6 +14,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Xml;
+using Path = System.IO.Path;
 
 namespace Installer
 {
@@ -130,71 +131,86 @@ namespace Installer
         public static bool AutoStartExe(bool removeEntry = false)
         {
             bool result = false;
+            bool ConfigureForMSFS2024 = false;
+            bool MSFSInstalled = File.Exists(Parameters.msConfigStore) || File.Exists(Parameters.msConfigSteam);
+            bool MSFS2024Installed = File.Exists(Parameters.msConfigStore2024) || File.Exists(Parameters.msConfigSteam2024);
+            bool MSFSSteam = File.Exists(Parameters.msConfigSteam);
+            bool MSFS2024Steam = File.Exists(Parameters.msConfigSteam2024);
 
             try
             {
-                string path = Parameters.msExeSteam;
-                if (!File.Exists(path))
-                    path = Parameters.msExeStore;
-
-                XmlDocument xmlDoc = new XmlDocument();
-                xmlDoc.LoadXml(File.ReadAllText(path));
-
-                bool found = false;
-                XmlNode simbase = xmlDoc.ChildNodes[1];
-                List<XmlNode> removeList = new List<XmlNode>();
-                foreach (XmlNode outerNode in simbase.ChildNodes)
+                do
                 {
-                    if (outerNode.Name == "Launch.Addon" && outerNode.InnerText.Contains(Parameters.appBinary))
+                    // If the MSFS version being configured is installed
+                    if (ConfigureForMSFS2024 ? MSFS2024Installed : MSFSInstalled)
                     {
-                        found = true;
+                        // Identify where the exe.xml file should be located 
+                        string path = ConfigureForMSFS2024 ? (MSFS2024Steam ? Parameters.msExeSteam2024 : Parameters.msExeStore2024) : (MSFSSteam ? Parameters.msExeSteam : Parameters.msExeStore);
+                        // Create a blank template if it doesn't currently exist
+                        if (!File.Exists(path))
+                            File.Copy(Parameters.ExeFileDefault, path);
 
-                        if (!removeEntry)
+                        XmlDocument xmlDoc = new XmlDocument();
+                        xmlDoc.LoadXml(File.ReadAllText(path));
+
+                        bool found = false;
+                        XmlNode simbase = xmlDoc.ChildNodes[1];
+                        List<XmlNode> removeList = new List<XmlNode>();
+                        foreach (XmlNode outerNode in simbase.ChildNodes)
                         {
-                            foreach (XmlNode innerNode in outerNode.ChildNodes)
+                            if (outerNode.Name == "Launch.Addon" && outerNode.InnerText.Contains(Parameters.appBinary))
                             {
-                                if (innerNode.Name == "Disabled")
-                                    innerNode.InnerText = "False";
-                                else if (innerNode.Name == "Path")
-                                    innerNode.InnerText = Parameters.binPath;
-                                else if (innerNode.Name == "CommandLine")
-                                    innerNode.InnerText = "";
-                                else if (innerNode.Name == "ManualLoad")
-                                    innerNode.InnerText = "False";
+                                found = true;
+
+                                if (!removeEntry)
+                                {
+                                    foreach (XmlNode innerNode in outerNode.ChildNodes)
+                                    {
+                                        if (innerNode.Name == "Disabled")
+                                            innerNode.InnerText = "False";
+                                        else if (innerNode.Name == "Path")
+                                            innerNode.InnerText = Parameters.binPath;
+                                        else if (innerNode.Name == "CommandLine")
+                                            innerNode.InnerText = "";
+                                        else if (innerNode.Name == "ManualLoad")
+                                            innerNode.InnerText = "False";
+                                    }
+                                }
+                                else
+                                    removeList.Add(outerNode);
                             }
                         }
-                        else
-                            removeList.Add(outerNode);
+                        foreach (XmlNode node in removeList)
+                            xmlDoc.ChildNodes[1].RemoveChild(node);
+
+                        if (!found && !removeEntry)
+                        {
+                            XmlNode outerNode = xmlDoc.CreateElement("Launch.Addon");
+
+                            XmlNode innerNode = xmlDoc.CreateElement("Disabled");
+                            innerNode.InnerText = "False";
+                            outerNode.AppendChild(innerNode);
+
+                            innerNode = xmlDoc.CreateElement("ManualLoad");
+                            innerNode.InnerText = "False";
+                            outerNode.AppendChild(innerNode);
+
+                            innerNode = xmlDoc.CreateElement("Name");
+                            innerNode.InnerText = Parameters.appName;
+                            outerNode.AppendChild(innerNode);
+
+                            innerNode = xmlDoc.CreateElement("Path");
+                            innerNode.InnerText = Parameters.binPath;
+                            outerNode.AppendChild(innerNode);
+
+                            xmlDoc.ChildNodes[1].AppendChild(outerNode);
+                        }
+
+                        xmlDoc.Save(path);
+                        result = true;
                     }
-                }
-                foreach (XmlNode node in removeList)
-                    xmlDoc.ChildNodes[1].RemoveChild(node);
-
-                if (!found && !removeEntry)
-                {
-                    XmlNode outerNode = xmlDoc.CreateElement("Launch.Addon");
-
-                    XmlNode innerNode = xmlDoc.CreateElement("Disabled");
-                    innerNode.InnerText = "False";
-                    outerNode.AppendChild(innerNode);
-
-                    innerNode = xmlDoc.CreateElement("ManualLoad");
-                    innerNode.InnerText = "False";
-                    outerNode.AppendChild(innerNode);
-
-                    innerNode = xmlDoc.CreateElement("Name");
-                    innerNode.InnerText = Parameters.appName;
-                    outerNode.AppendChild(innerNode);
-
-                    innerNode = xmlDoc.CreateElement("Path");
-                    innerNode.InnerText = Parameters.binPath;
-                    outerNode.AppendChild(innerNode);
-
-                    xmlDoc.ChildNodes[1].AppendChild(outerNode);
-                }
-
-                xmlDoc.Save(path);
-                result = true;
+                    ConfigureForMSFS2024 = !ConfigureForMSFS2024;
+                } while (ConfigureForMSFS2024);
             }
             catch (Exception e)
             {
@@ -440,18 +456,18 @@ namespace Installer
             return "";
         }
 
-        public static bool CheckInstalledMSFS(out string packagePath)
+        public static bool CheckInstalledMSFS(bool isMSFS2024, out string packagePath)
         {
             try
             {
-                if (File.Exists(Parameters.msConfigStore))
+                if (File.Exists(isMSFS2024 ? Parameters.msConfigStore2024 : Parameters.msConfigStore))
                 {
-                    packagePath = FindPackagePath(Parameters.msConfigStore);
+                    packagePath = FindPackagePath(isMSFS2024 ? Parameters.msConfigStore2024 : Parameters.msConfigStore);
                     return !string.IsNullOrWhiteSpace(packagePath) && Directory.Exists(packagePath);
                 }
-                else if (File.Exists(Parameters.msConfigSteam))
+                else if (File.Exists(isMSFS2024 ? Parameters.msConfigSteam2024 : Parameters.msConfigSteam))
                 {
-                    packagePath = FindPackagePath(Parameters.msConfigSteam);
+                    packagePath = FindPackagePath(isMSFS2024 ? Parameters.msConfigSteam2024 : Parameters.msConfigSteam);
                     return !string.IsNullOrWhiteSpace(packagePath) && Directory.Exists(packagePath);
                 }
 

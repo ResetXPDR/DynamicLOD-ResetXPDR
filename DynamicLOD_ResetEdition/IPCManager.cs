@@ -49,11 +49,16 @@ namespace DynamicLOD_ResetEdition
             return proc != null && proc.ProcessName == name;
         }
 
+        public static bool IsSim2024()
+        {
+            return IsProcessRunning("FlightSimulator2024");
+        }
+
         public static bool IsSimRunning()
         {
-            return IsProcessRunning("FlightSimulator");
+            return (IsProcessRunning("FlightSimulator") || IsProcessRunning("FlightSimulator2024"));
         }
-        
+
         public static bool WaitForConnection(ServiceModel model)
         {
             if (!IsSimRunning())
@@ -120,7 +125,11 @@ namespace DynamicLOD_ResetEdition
             float value = SimConnect.ReadSimVar("CAMERA STATE", "Enum");
             bool parkState = SimConnect.ReadSimVar("PLANE IN PARKING STATE", "Bool") == 1;
 
-            return value >= 2 && value <= 5 && !parkState;
+            // Logger.Log(LogLevel.Information, "IPCManager:IsCamReady", "Cam State " + value);
+
+            // New 2024 Camera States: 26 walkaround, 27 photo, 29 transition to in flight menu, 33 free look, 35 in flight menu 
+
+            return ((value >= 2 && value <= 5) || value == 26 || value == 27 || value == 29 || value == 33 || value == 35) && !parkState;
         }
 
         public static void CloseSafe()
