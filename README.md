@@ -41,8 +41,8 @@ How does this app work for Frame Generation (FG) users?
 - Lossless Scaling (LS) FG, including the scaling multiplier used, is also detected and the correct LSFG multiplied FPS is displayed.
   - The app will first try to use an LS profile with the specific name MSFS2020 or MSFS2024, depending on which MSFS version is currently in use, to obtain these settings.
   - If such an MSFS2020 or MSFS2024 profile does not exist then the settings in the Default profile will be used.
-  - If you are using LSFG 1.1 in LS and AutoFPS is not showing a 2X multiplier, temporarily select LSFG 2.3 in LS and select the 2X multiplier, switch back to LSFG 1.1 then press the AutoFPS's Reset button.
-  - If you make changes to your LS settings after starting a flight, press AutoFPS's Reset button so that AutoFPS can redetect them correctly.
+  - If you are using LSFG 1.1 in LS and the app is not showing a 2X multiplier, temporarily select LSFG 2.3 in LS and select the 2X multiplier, switch back to LSFG 1.1 then press the app's Redetect button.
+  - If you make changes to your LS settings after starting a flight, press app's Reset button so that the app can redetect them correctly.
 - Detection of FG is normally only performed upon starting a flight. If FG is enabled or LS is started after this detection is normally performed, press the Reset button for it to be detected.
 
 This utility can be installed concurrent with any DynamicLOD variant. You just shouldn't run them at the same time, as they would both be fighting each other with MSFS settings. This app can detect whether itself, a previous DynamicLOD variant, MSFS2020_AutoFPS, MSFS_AutoFPS, MSFS2024_AutoFPS or Smoothflight is running and will quit if it encounters one.</br>
