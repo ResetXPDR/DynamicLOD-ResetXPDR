@@ -75,6 +75,7 @@ Some Notes:
 - If you have duplicate MobiFlight Modules installed, in either your official or community folders, the utility may display 0 value Sim Values and otherwise not function. Remove the duplicate versions, rerun the utility installer and it should now work.
 - Do not run the Installer as Admin!
 - If you wish to retain your settings for an update version, do NOT uninstall first, as that deletes all app files, including the config file. Just run the installer, select update and your settings will be retained.
+- The clean install option will recreate new configuration files without having to remove the app first.
 - If you wish to remove an Auto-Start option from a previous installation, rerun the installer and select Remove Auto-Start and the click Update.
 - For Auto-Start either your FSUIPC7.ini or EXE.xml (MSFS) is modified. The Installer does not create a Backup.
 - The utility may be blocked by Windows Security or your AV-Scanner, try if unblocking and/or setting an Exception helps (for the whole Folder)
@@ -85,10 +86,13 @@ Some Notes:
 - If after installing and running the app your simconnect always stays red:
   - Try downloading and installing a Microsoft official version of “Microsoft Visual C++ 2015 - 2022 Redistributable”, which may be missing from your Windows installation.
   - If still not resolved and the error code in your DynamicLOD_ResetEdition log file is Exception 31, you most likely have a corrupt MSFS installation so you can choose to either not run this app or to reinstall MSFS completely. 
-- If you get an "MSFS compatibility test failed - Read Only mode" message there are three possible causes:
+- If you get an "MSFS compatibility test failed - app disabled." message there are numerous possible causes:
+  - You have started MSFS, made changes to MSFS settings and then started this app. To rectify:
+    - First, try exiting this app, go to the MSFS settings menu, toggle any simple setting eg. vsync, save changes then restart this app.
+    - If that doesn't work, try exiting this app and MSFS completely, start this app then start MSFS.
+  - There is an issue with permissions and you may need to run the app as Administrator. 
   - You may have changed MSFS settings in your usercfg.opt file beyond what is possible to set in the MSFS settings menu. To rectify, go into MSFS settings at the main menu and reset to default (F12) the graphics settings for both PC and VR mode, then make all changes to MSFS within the MSFS settings menu.
-  - There is an issue with permissions and you may need to run the app as Administrator.
-  - A new version of MSFS has come out that has a different memory map to what the app expects, which has happened only once since MSFS 2020 was released, and the app can't auto adjust to the new memory location for MSFS settings. If so, I will likely be already aware of it and working on a solution, but if you may be one of the first to encounter it (eg. on an MSFS beta) then please do let me know.
+  - A new version of MSFS has come out that has a different memory map to what the app expects and the app can't auto adjust to the new memory location for MSFS settings. If so, I will likely be already aware of it and working on a solution, but if you may be one of the first to encounter it (eg. on an MSFS beta) then please raise an issue on github or contribute to an existing one if it has already been raised.
 - If you get a message when starting the app that you need to install .NET desktop runtime, manually download it from [here](https://dotnet.microsoft.com/en-us/download/dotnet/7.0).
 - If you get an error message saying "XML Exception: Unexpected XML declaration" or "Exception: 'System.Xml.XMlException' during AutostartExe" when trying to install with the auto-start option for MSFS, it usually means your EXE.xml file has a corrupted data structure. To resolve, copy the content of your EXE.xml into MS Copilot and ask it to check and correct it for you. Paste the fixed structure back into your EXE.xml file, save it, then try reinstalling again.
 - To uninstall, run the installer and select remove on the first window. This will remove all traces of the app, including the desktop icon, MSFS or FSUIPC autostart entries if you used them, and the entire app folder, including your configuration file.
